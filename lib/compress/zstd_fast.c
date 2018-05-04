@@ -108,12 +108,10 @@ size_t ZSTD_compressBlock_fast_generic(
                  & (repIndex > dictLowestLocalIndex)))
             || (hasDict == ZSTD_noDict && offset_1 > 0))
           && MEM_read32(repMatch) == MEM_read32(ip+1)) {
-            const BYTE* repMatchEnd = ( hasDict == ZSTD_dictMatchState
-                                     && repIndex < (ptrdiff_t)localLowestIndex) ?
-                                     dictEnd : iend;
-            mLength = hasDict == ZSTD_dictMatchState ?
-                ZSTD_count_2segments(ip+1+4, repMatch+4, iend, repMatchEnd, istart) + 4 :
-                ZSTD_count(ip+1+4, ip+1+4-offset_1, iend) + 4;
+            mLength = ( hasDict == ZSTD_dictMatchState
+                     && repIndex < (ptrdiff_t)localLowestIndex) ?
+                ZSTD_count_2segments(ip+1+4, repMatch+4, iend, dictEnd, istart) + 4 :
+                ZSTD_count(ip+1+4, repMatch+4, iend) + 4;
             ip++;
             ZSTD_storeSeq(seqStore, ip-anchor, anchor, 0, mLength-MINMATCH);
         } else if ( (matchIndex <= localLowestIndex)
@@ -178,10 +176,10 @@ size_t ZSTD_compressBlock_fast_generic(
                    || ( hasDict == ZSTD_noDict
                      && ( (ip - offset_2 >= istart) & (offset_2 > 0)) ))
                   && MEM_read32(repMatch2) == MEM_read32(ip)) {
-                    const BYTE* const repEnd2 = (hasDict == ZSTD_dictMatchState && repIndex2 < (ptrdiff_t)localLowestIndex) ? dictEnd : iend;
-                    size_t const repLength2 = hasDict == ZSTD_dictMatchState ?
-                        ZSTD_count_2segments(ip+4, repMatch2+4, iend, repEnd2, istart) + 4 :
-                        ZSTD_count(ip+4, ip+4-offset_2, iend) + 4;
+                    size_t const repLength2 = ( hasDict == ZSTD_dictMatchState
+                                             && repIndex2 < (ptrdiff_t)localLowestIndex) ?
+                        ZSTD_count_2segments(ip+4, repMatch2+4, iend, dictEnd, istart) + 4 :
+                        ZSTD_count(ip+4, repMatch2+4, iend) + 4;
                     U32 tmpOffset = offset_2; offset_2 = offset_1; offset_1 = tmpOffset;   /* swap offset_2 <=> offset_1 */
                     hashTable[ZSTD_hashPtr(ip, hlog, mls)] = current2;
                     ZSTD_storeSeq(seqStore, 0, anchor, 0, repLength2-MINMATCH);

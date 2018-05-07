@@ -105,9 +105,9 @@ size_t ZSTD_compressBlock_fast_generic(
 
         if ( ( ( hasDict == ZSTD_dictMatchState
               && ( ((U32)((localLowestIndex-1) - repIndex) >= 3 /* intentional underflow */)
-                 & (repIndex > dictLowestLocalIndex)))
-            || (hasDict == ZSTD_noDict && offset_1 > 0))
-          && MEM_read32(repMatch) == MEM_read32(ip+1)) {
+                 & (repIndex > dictLowestLocalIndex))
+              && MEM_read32(repMatch) == MEM_read32(ip+1))
+            || (hasDict == ZSTD_noDict && ((offset_1 > 0) & (MEM_read32(repMatch) == MEM_read32(ip+1)))))) {
             mLength = ( hasDict == ZSTD_dictMatchState
                      && repIndex < (ptrdiff_t)localLowestIndex) ?
                 ZSTD_count_2segments(ip+1+4, repMatch+4, iend, dictEnd, istart) + 4 :

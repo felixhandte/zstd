@@ -100,7 +100,9 @@ size_t ZSTD_compressBlock_fast_generic(
         const BYTE* repBase = (hasDict == ZSTD_dictMatchState
                             && repIndex < (ptrdiff_t)localLowestIndex) ?
                                dictBase - dictIndexDelta : base;
-        const BYTE* repMatch = repBase + repIndex;
+        const BYTE* repMatch = hasDict == ZSTD_dictMatchState ?
+                               repBase + repIndex :
+                               ip + 1 - offset_1;
         hashTable[h] = current;   /* update hash table */
 
         if ( ( ( hasDict == ZSTD_dictMatchState

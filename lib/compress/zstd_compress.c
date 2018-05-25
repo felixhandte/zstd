@@ -2707,7 +2707,9 @@ ZSTD_compress_insertDictionary(ZSTD_compressedBlockState_t* bs,
                                void* workspace)
 {
     DEBUGLOG(4, "ZSTD_compress_insertDictionary (dictSize=%u)", (U32)dictSize);
-    if ((dict==NULL) || (dictSize<=8)) return 0;
+    if ((dict==NULL) || (dictSize<=8)) {
+        return dictContentType == ZSTD_dct_fullDict ? ERROR(dictionary_wrong) : 0;
+    }
 
     ZSTD_reset_compressedBlockState(bs);
 

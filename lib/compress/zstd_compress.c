@@ -1208,9 +1208,9 @@ static size_t ZSTD_resetCCtx_usingCDict(ZSTD_CCtx* cctx,
      * context, or referencing the dictionary context from the working context
      * in-place. We decide here which strategy to use. */
     const U64 attachDictSizeCutoffs[(unsigned)ZSTD_btultra+1] = {
-        8 KB, /* unused */
-        8 KB, /* ZSTD_fast */
-        16 KB, /* ZSTD_dfast */
+        1 MB, /* unused */
+        1 MB, /* ZSTD_fast */
+        1 MB, /* ZSTD_dfast */
         16 KB, /* ZSTD_greedy */
         16 KB, /* ZSTD_lazy */
         16 KB, /* ZSTD_lazy2 */

@@ -383,6 +383,7 @@ static U32 ZSTD_insertBt1(
     U32* largerPtr  = smallerPtr + 1;
     U32 dummy32;   /* to be nullified at the end */
     U32 const windowLow = ms->window.lowLimit;
+    U32 const matchLow = windowLow ? windowLow : 1;
     U32 matchEndIdx = current+8+1;
     size_t bestLength = 8;
     U32 nbCompares = 1U << cParams->searchLog;
@@ -398,7 +399,7 @@ static U32 ZSTD_insertBt1(
     assert(ip <= iend-8);   /* required for h calculation */
     hashTable[h] = current;   /* Update Hash Table */
 
-    while (nbCompares-- && (matchIndex > windowLow)) {
+    while (nbCompares-- && (matchIndex >= matchLow)) {
         U32* const nextPtr = bt + 2*(matchIndex & btMask);
         size_t matchLength = MIN(commonLengthSmaller, commonLengthLarger);   /* guaranteed minimum nb of common bytes */
         assert(matchIndex < current);
@@ -408,7 +409,7 @@ static U32 ZSTD_insertBt1(
         if (matchIndex == predictedSmall) {
             /* no need to check length, result known */
             *smallerPtr = matchIndex;
-            if (matchIndex <= btLow) { smallerPtr=&dummy32; break; }   /* beyond tree size, stop the search */
+            if (matchIndex < btLow) { smallerPtr=&dummy32; break; }   /* beyond tree size, stop the search */
             smallerPtr = nextPtr+1;               /* new "smaller" => larger of match */
             matchIndex = nextPtr[1];              /* new matchIndex larger than previous (closer to current) */
             predictedSmall = predictPtr[1] + (predictPtr[1]>0);
@@ -416,7 +417,7 @@ static U32 ZSTD_insertBt1(
         }
         if (matchIndex == predictedLarge) {
             *largerPtr = matchIndex;
-            if (matchIndex <= btLow) { largerPtr=&dummy32; break; }   /* beyond tree size, stop the search */
+            if (matchIndex < btLow) { largerPtr=&dummy32; break; }   /* beyond tree size, stop the search */
             largerPtr = nextPtr;
             matchIndex = nextPtr[0];
             predictedLarge = predictPtr[0] + (predictPtr[0]>0);
@@ -449,14 +450,14 @@ static U32 ZSTD_insertBt1(
             /* match is smaller than current */
             *smallerPtr = matchIndex;             /* update smaller idx */
             commonLengthSmaller = matchLength;    /* all smaller will now have at least this guaranteed common length */
-            if (matchIndex <= btLow) { smallerPtr=&dummy32; break; }   /* beyond tree size, stop searching */
+            if (matchIndex < btLow) { smallerPtr=&dummy32; break; }   /* beyond tree size, stop searching */
             smallerPtr = nextPtr+1;               /* new "candidate" => larger than match, which was smaller than target */
             matchIndex = nextPtr[1];              /* new matchIndex, larger than previous and closer to current */
         } else {
             /* match is larger than current */
             *largerPtr = matchIndex;
             commonLengthLarger = matchLength;
-            if (matchIndex <= btLow) { largerPtr=&dummy32; break; }   /* beyond tree size, stop searching */
+            if (matchIndex < btLow) { largerPtr=&dummy32; break; }   /* beyond tree size, stop searching */
             largerPtr = nextPtr;
             matchIndex = nextPtr[0];
     }   }
@@ -516,6 +517,7 @@ U32 ZSTD_insertBtAndGetAllMatches (
     const BYTE* const prefixStart = base + dictLimit;
     U32 const btLow = btMask >= current ? 0 : current - btMask;
     U32 const windowLow = ms->window.lowLimit;
+    U32 const matchLow = windowLow ? windowLow : 1;
     U32* smallerPtr = bt + 2*(current&btMask);
     U32* largerPtr  = bt + 2*(current&btMask) + 1;
     U32 matchEndIdx = current+8+1;   /* farthest referenced position of any match => detects repetitive patterns */
@@ -637,7 +639,7 @@ U32 ZSTD_insertBtAndGetAllMatches (
 
     hashTable[h] = current;   /* Update Hash Table */
 
-    while (nbCompares-- && (matchIndex > windowLow)) {
+    while (nbCompares-- && (matchIndex >= matchLow)) {
         U32* const nextPtr = bt + 2*(matchIndex & btMask);
         size_t matchLength = MIN(commonLengthSmaller, commonLengthLarger);   /* guaranteed minimum nb of common bytes */
         const BYTE* match;
@@ -675,13 +677,13 @@ U32 ZSTD_insertBtAndGetAllMatches (
             /* match smaller than current */
             *smallerPtr = matchIndex;             /* update smaller idx */
             commonLengthSmaller = matchLength;    /* all smaller will now have at least this guaranteed common length */
-            if (matchIndex <= btLow) { smallerPtr=&dummy32; break; }   /* beyond tree size, stop the search */
+            if (matchIndex < btLow) { smallerPtr=&dummy32; break; }   /* beyond tree size, stop the search */
             smallerPtr = nextPtr+1;               /* new candidate => larger than match, which was smaller than current */
             matchIndex = nextPtr[1];              /* new matchIndex, larger than previous, closer to current */
         } else {
             *largerPtr = matchIndex;
             commonLengthLarger = matchLength;
-            if (matchIndex <= btLow) { largerPtr=&dummy32; break; }   /* beyond tree size, stop the search */
+            if (matchIndex < btLow) { largerPtr=&dummy32; break; }   /* beyond tree size, stop the search */
             largerPtr = nextPtr;
             matchIndex = nextPtr[0];
     }   }
@@ -715,7 +717,7 @@ U32 ZSTD_insertBtAndGetAllMatches (
                 }
             }
 
-            if (dictMatchIndex <= dmsBtLow) { break; }   /* beyond tree size, stop the search */
+            if (dictMatchIndex < dmsBtLow) { break; }   /* beyond tree size, stop the search */
             if (match[matchLength] < ip[matchLength]) {
                 commonLengthSmaller = matchLength;    /* all smaller will now have at least this guaranteed common length */
                 dictMatchIndex = nextPtr[1];              /* new matchIndex larger than previous (closer to current) */

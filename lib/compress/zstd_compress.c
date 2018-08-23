@@ -1084,6 +1084,8 @@ ZSTD_reset_matchState(ZSTD_matchState_t* ms,
     ms->hashTable3 = ms->chainTable + chainSize;
     ptr = ms->hashTable3 + h3Size;
 
+    ms->cParams = *cParams;
+
     assert(((size_t)ptr & 3) == 0);
     return ptr;
 }
@@ -1358,6 +1360,7 @@ static size_t ZSTD_resetCCtx_usingCDict(ZSTD_CCtx* cctx,
             dstMatchState->nextToUpdate = srcMatchState->nextToUpdate;
             dstMatchState->nextToUpdate3= srcMatchState->nextToUpdate3;
             dstMatchState->loadedDictEnd= srcMatchState->loadedDictEnd;
+            dstMatchState->cParams      = srcMatchState->cParams;
         }
     }
 

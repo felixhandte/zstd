@@ -1309,14 +1309,14 @@ void ZSTD_invalidateRepCodes(ZSTD_CCtx* cctx) {
  */
 static const size_t attachDictSizeCutoffs[(unsigned)ZSTD_btultra+1] = {
     8 KB, /* unused */
-    8 KB, /* ZSTD_fast */
-    16 KB, /* ZSTD_dfast */
+    16 KB, /* ZSTD_fast */
+    32 KB, /* ZSTD_dfast */
     32 KB, /* ZSTD_greedy */
-    32 KB, /* ZSTD_lazy */
-    32 KB, /* ZSTD_lazy2 */
-    32 KB, /* ZSTD_btlazy2 */
-    32 KB, /* ZSTD_btopt */
-    8 KB /* ZSTD_btultra */
+    64 KB, /* ZSTD_lazy */
+    64 KB, /* ZSTD_lazy2 */
+    64 KB, /* ZSTD_btlazy2 */
+    64 KB, /* ZSTD_btopt */
+    128 KB /* ZSTD_btultra */
 };
 
 static int ZSTD_shouldAttachDict(ZSTD_CCtx_params params)

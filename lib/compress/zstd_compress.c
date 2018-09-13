@@ -2585,7 +2585,7 @@ static size_t ZSTD_compress_frameChunk (ZSTD_CCtx* cctx,
     U32 const maxDist = (U32)1 << cctx->appliedParams.cParams.windowLog;
     assert(cctx->appliedParams.cParams.windowLog <= 31);
 
-    if (ms->dictMatchState) {
+    if (ms->dictMatchState && cctx->appliedParams.attachDictPref != ZSTD_dictForceAttach) {
         size_t dmsBlockSizeLimit = attachDictSizeCutoffs[ms->cParams.strategy];
         if (blockSize > dmsBlockSizeLimit)
             blockSize = dmsBlockSizeLimit;

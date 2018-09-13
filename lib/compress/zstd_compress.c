@@ -2581,15 +2581,21 @@ static size_t ZSTD_compress_frameChunk (ZSTD_CCtx* cctx,
     const BYTE* ip = (const BYTE*)src;
     BYTE* const ostart = (BYTE*)dst;
     BYTE* op = ostart;
+    ZSTD_matchState_t* const ms = &cctx->blockState.matchState;
     U32 const maxDist = (U32)1 << cctx->appliedParams.cParams.windowLog;
     assert(cctx->appliedParams.cParams.windowLog <= 31);
+
+    if (ms->dictMatchState) {
+        size_t dmsBlockSizeLimit = attachDictSizeCutoffs[ms->cParams.strategy];
+        if (blockSize > dmsBlockSizeLimit)
+            blockSize = dmsBlockSizeLimit;
+    }
 
     DEBUGLOG(5, "ZSTD_compress_frameChunk (blockSize=%u)", (U32)blockSize);
     if (cctx->appliedParams.fParams.checksumFlag && srcSize)
         XXH64_update(&cctx->xxhState, src, srcSize);
 
     while (remaining) {
-        ZSTD_matchState_t* const ms = &cctx->blockState.matchState;
         U32 const lastBlock = lastFrameChunk & (blockSize >= remaining);
 
         if (dstCapacity < ZSTD_blockHeaderSize + MIN_CBLOCK_SIZE)
@@ -2633,7 +2639,13 @@ static size_t ZSTD_compress_frameChunk (ZSTD_CCtx* cctx,
             dstCapacity -= cSize;
             DEBUGLOG(5, "ZSTD_compress_frameChunk: adding a block of size %u",
                         (U32)cSize);
-    }   }
+        }
+
+        if (ms->dictMatchState) {
+            blockSize = cctx->blockSize;
+            ms->dictMatchState = NULL;
+        }
+    }
 
     if (lastFrameChunk && (op>ostart)) cctx->stage = ZSTDcs_ending;
     return op-ostart;

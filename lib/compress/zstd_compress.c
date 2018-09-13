@@ -1319,15 +1319,9 @@ static const size_t attachDictSizeCutoffs[(unsigned)ZSTD_btultra+1] = {
     8 KB /* ZSTD_btultra */
 };
 
-static int ZSTD_shouldAttachDict(const ZSTD_CDict* cdict,
-                                 ZSTD_CCtx_params params,
-                                 U64 pledgedSrcSize)
+static int ZSTD_shouldAttachDict(ZSTD_CCtx_params params)
 {
-    size_t cutoff = attachDictSizeCutoffs[cdict->matchState.cParams.strategy];
-    return ( pledgedSrcSize <= cutoff
-          || pledgedSrcSize == ZSTD_CONTENTSIZE_UNKNOWN
-          || params.attachDictPref == ZSTD_dictForceAttach )
-        && params.attachDictPref != ZSTD_dictForceCopy
+    return params.attachDictPref != ZSTD_dictForceCopy
         && !params.forceWindow; /* dictMatchState isn't correctly
                                  * handled in _enforceMaxDist */
 }
@@ -1487,7 +1481,7 @@ static size_t ZSTD_resetCCtx_usingCDict(ZSTD_CCtx* cctx,
 
     DEBUGLOG(4, "ZSTD_resetCCtx_usingCDict (pledgedSrcSize=%u)", (U32)pledgedSrcSize);
 
-    if (ZSTD_shouldAttachDict(cdict, params, pledgedSrcSize)) {
+    if (ZSTD_shouldAttachDict(params)) {
         return ZSTD_resetCCtx_byAttachingCDict(
             cctx, cdict, params, pledgedSrcSize, zbuff);
     } else {

@@ -712,9 +712,12 @@ static int basicUnitTests(U32 seed, double compressibility)
     DISPLAYLEVEL(3, "OK\n");
 
     DISPLAYLEVEL(3, "test%3i : ZSTD_initCStream_usingCDict_advanced with masked dictID : ", testNb++);
-    {   ZSTD_compressionParameters const cParams = ZSTD_getCParams(1, CNBufferSize, dictionary.filled);
+    {   const int compressionLevel = 1;
+        ZSTD_compressionParameters const cParams = ZSTD_getCParams(compressionLevel, CNBufferSize, dictionary.filled);
         ZSTD_frameParameters const fParams = { 1 /* contentSize */, 1 /* checksum */, 1 /* noDictID */};
-        ZSTD_CDict* const cdict = ZSTD_createCDict_advanced(dictionary.start, dictionary.filled, ZSTD_dlm_byRef, ZSTD_dct_auto, cParams, ZSTD_defaultCMem);
+        ZSTD_CDict* const cdict = ZSTD_createCDict_advanced(
+            dictionary.start, dictionary.filled, ZSTD_dlm_byRef, ZSTD_dct_auto,
+            cParams, compressionLevel, ZSTD_defaultCMem);
         size_t const initError = ZSTD_initCStream_usingCDict_advanced(zc, cdict, fParams, CNBufferSize);
         if (ZSTD_isError(initError)) goto _output_error;
         outBuff.dst = compressedBuffer;
@@ -887,8 +890,11 @@ static int basicUnitTests(U32 seed, double compressibility)
         inBuff.size = srcSize; assert(srcSize < COMPRESSIBLE_NOISE_LENGTH);
         inBuff.pos = 0;
     }
-    {   ZSTD_compressionParameters const cParams = ZSTD_getCParams(1, 4 KB, dictionary.filled);   /* intentionnally lies on estimatedSrcSize, to push cdict into targeting a small window size */
-        ZSTD_CDict* const cdict = ZSTD_createCDict_advanced(dictionary.start, dictionary.filled, ZSTD_dlm_byRef, ZSTD_dct_fullDict, cParams, ZSTD_defaultCMem);
+    {   const int compressionLevel = 1;
+        ZSTD_compressionParameters const cParams = ZSTD_getCParams(compressionLevel, 4 KB, dictionary.filled);   /* intentionnally lies on estimatedSrcSize, to push cdict into targeting a small window size */
+        ZSTD_CDict* const cdict = ZSTD_createCDict_advanced(
+            dictionary.start, dictionary.filled, ZSTD_dlm_byRef,
+            ZSTD_dct_fullDict, cParams, compressionLevel, ZSTD_defaultCMem);
         DISPLAYLEVEL(5, "cParams.windowLog = %u : ", cParams.windowLog);
         CHECK_Z( ZSTD_CCtx_refCDict(zc, cdict) );
         CHECK_Z( ZSTD_compress_generic(zc, &outBuff, &inBuff, ZSTD_e_end) );
@@ -922,7 +928,8 @@ static int basicUnitTests(U32 seed, double compressibility)
     DISPLAYLEVEL(3, "test%3i : check dictionary FSE tables can represent every code : ", testNb++);
     {   unsigned const kMaxWindowLog = 24;
         unsigned value;
-        ZSTD_compressionParameters cParams = ZSTD_getCParams(3, 1U << kMaxWindowLog, 1024);
+        const int compressionLevel = 3;
+        ZSTD_compressionParameters cParams = ZSTD_getCParams(compressionLevel, 1U << kMaxWindowLog, 1024);
         ZSTD_CDict* cdict;
         ZSTD_DDict* ddict;
         SEQ_stream seq = SEQ_initStream(0x87654321);
@@ -931,7 +938,9 @@ static int basicUnitTests(U32 seed, double compressibility)
 
         XXH64_reset(&xxh, 0);
         cParams.windowLog = kMaxWindowLog;
-        cdict = ZSTD_createCDict_advanced(dictionary.start, dictionary.filled, ZSTD_dlm_byRef, ZSTD_dct_fullDict, cParams, ZSTD_defaultCMem);
+        cdict = ZSTD_createCDict_advanced(
+            dictionary.start, dictionary.filled, ZSTD_dlm_byRef,
+            ZSTD_dct_fullDict, cParams, compressionLevel, ZSTD_defaultCMem);
         ddict = ZSTD_createDDict(dictionary.start, dictionary.filled);
 
         if (!cdict || !ddict) goto _output_error;
@@ -1024,7 +1033,7 @@ static int basicUnitTests(U32 seed, double compressibility)
     {   ZSTD_CDict* const cdict = ZSTD_createCDict_advanced(
             dictionary.start, dictionary.filled,
             ZSTD_dlm_byRef, ZSTD_dct_fullDict,
-            ZSTD_getCParams(3, 0, dictionary.filled),
+            ZSTD_getCParams(3, 0, dictionary.filled), 3,
             ZSTD_defaultCMem);
         const size_t inbufsize = 2 * 128 * 1024; /* 2 blocks */
         const size_t outbufsize = ZSTD_compressBound(inbufsize);
@@ -1077,7 +1086,7 @@ static int basicUnitTests(U32 seed, double compressibility)
     {   ZSTD_CDict* const cdict = ZSTD_createCDict_advanced(
             dictionary.start, dictionary.filled,
             ZSTD_dlm_byRef, ZSTD_dct_fullDict,
-            ZSTD_getCParams(3, 0, dictionary.filled),
+            ZSTD_getCParams(3, 0, dictionary.filled), 3,
             ZSTD_defaultCMem);
         ZSTD_outBuffer out = {compressedBuffer, compressedBufferSize, 0};
         int remainingInput = 256 * 1024;

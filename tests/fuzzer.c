@@ -892,10 +892,12 @@ static int basicUnitTests(U32 seed, double compressibility)
         }
 
         DISPLAYLEVEL(3, "test%3i : compress with CDict ", testNb++);
-        {   ZSTD_compressionParameters const cParams = ZSTD_getCParams(1, CNBuffSize, dictSize);
-            ZSTD_CDict* const cdict = ZSTD_createCDict_advanced(dictBuffer, dictSize,
-                                            ZSTD_dlm_byRef, ZSTD_dct_auto,
-                                            cParams, ZSTD_defaultCMem);
+        {   const int compressionLevel = 1;
+            ZSTD_compressionParameters const cParams = ZSTD_getCParams(
+                compressionLevel, CNBuffSize, dictSize);
+            ZSTD_CDict* const cdict = ZSTD_createCDict_advanced(
+                dictBuffer, dictSize, ZSTD_dlm_byRef, ZSTD_dct_auto,
+                cParams, compressionLevel, ZSTD_defaultCMem);
             DISPLAYLEVEL(3, "(size : %u) : ", (U32)ZSTD_sizeof_CDict(cdict));
             cSize = ZSTD_compress_usingCDict(cctx, compressedBuffer, compressedBufferSize,
                                                  CNBuffer, CNBuffSize, cdict);
@@ -930,7 +932,7 @@ static int basicUnitTests(U32 seed, double compressibility)
                                                 cdictBuffer, cdictSize,
                                                 dictBuffer, dictSize,
                                                 ZSTD_dlm_byCopy, ZSTD_dct_auto,
-                                                cParams);
+                                                cParams, level);
                     if (cdict == NULL) {
                         DISPLAY("ZSTD_initStaticCDict failed ");
                         goto _output_error;
@@ -947,9 +949,13 @@ static int basicUnitTests(U32 seed, double compressibility)
         DISPLAYLEVEL(3, "OK (%u bytes : %.2f%%)\n", (U32)cSize, (double)cSize/CNBuffSize*100);
 
         DISPLAYLEVEL(3, "test%3i : ZSTD_compress_usingCDict_advanced, no contentSize, no dictID : ", testNb++);
-        {   ZSTD_frameParameters const fParams = { 0 /* frameSize */, 1 /* checksum */, 1 /* noDictID*/ };
-            ZSTD_compressionParameters const cParams = ZSTD_getCParams(1, CNBuffSize, dictSize);
-            ZSTD_CDict* const cdict = ZSTD_createCDict_advanced(dictBuffer, dictSize, ZSTD_dlm_byRef, ZSTD_dct_auto, cParams, ZSTD_defaultCMem);
+        {   const int compressionLevel = 1;
+            ZSTD_frameParameters const fParams = { 0 /* frameSize */, 1 /* checksum */, 1 /* noDictID*/ };
+            ZSTD_compressionParameters const cParams = ZSTD_getCParams(
+                compressionLevel, CNBuffSize, dictSize);
+            ZSTD_CDict* const cdict = ZSTD_createCDict_advanced(
+                dictBuffer, dictSize, ZSTD_dlm_byRef, ZSTD_dct_auto,
+                cParams, compressionLevel, ZSTD_defaultCMem);
             cSize = ZSTD_compress_usingCDict_advanced(cctx, compressedBuffer, compressedBufferSize,
                                                  CNBuffer, CNBuffSize, cdict, fParams);
             ZSTD_freeCDict(cdict);
@@ -999,16 +1005,24 @@ static int basicUnitTests(U32 seed, double compressibility)
         DISPLAYLEVEL(3, "OK \n");
 
         DISPLAYLEVEL(3, "test%3i : Building cdict w/ ZSTD_dm_fullDict on a good dictionary : ", testNb++);
-        {   ZSTD_compressionParameters const cParams = ZSTD_getCParams(1, CNBuffSize, dictSize);
-            ZSTD_CDict* const cdict = ZSTD_createCDict_advanced(dictBuffer, dictSize, ZSTD_dlm_byRef, ZSTD_dct_fullDict, cParams, ZSTD_defaultCMem);
+        {   const int compressionLevel = 1;
+            ZSTD_compressionParameters const cParams = ZSTD_getCParams(
+                compressionLevel, CNBuffSize, dictSize);
+            ZSTD_CDict* const cdict = ZSTD_createCDict_advanced(
+                dictBuffer, dictSize, ZSTD_dlm_byRef, ZSTD_dct_fullDict,
+                cParams, compressionLevel, ZSTD_defaultCMem);
             if (cdict==NULL) goto _output_error;
             ZSTD_freeCDict(cdict);
         }
         DISPLAYLEVEL(3, "OK \n");
 
         DISPLAYLEVEL(3, "test%3i : Building cdict w/ ZSTD_dm_fullDict on a rawContent (must fail) : ", testNb++);
-        {   ZSTD_compressionParameters const cParams = ZSTD_getCParams(1, CNBuffSize, dictSize);
-            ZSTD_CDict* const cdict = ZSTD_createCDict_advanced((const char*)dictBuffer+1, dictSize-1, ZSTD_dlm_byRef, ZSTD_dct_fullDict, cParams, ZSTD_defaultCMem);
+        {   const int compressionLevel = 1;
+            ZSTD_compressionParameters const cParams = ZSTD_getCParams(
+                compressionLevel, CNBuffSize, dictSize);
+            ZSTD_CDict* const cdict = ZSTD_createCDict_advanced(
+                (const char*)dictBuffer+1, dictSize-1, ZSTD_dlm_byRef,
+                ZSTD_dct_fullDict, cParams, compressionLevel, ZSTD_defaultCMem);
             if (cdict!=NULL) goto _output_error;
             ZSTD_freeCDict(cdict);
         }
@@ -1063,10 +1077,12 @@ static int basicUnitTests(U32 seed, double compressibility)
          */
         {   size_t dSize;
             BYTE data[1024];
-            ZSTD_compressionParameters const cParams = ZSTD_getCParams(19, CNBuffSize, dictSize);
-            ZSTD_CDict* const cdict = ZSTD_createCDict_advanced(dictBuffer, dictSize,
-                                            ZSTD_dlm_byRef, ZSTD_dct_auto,
-                                            cParams, ZSTD_defaultCMem);
+            const int compressionLevel = 19;
+            ZSTD_compressionParameters const cParams = ZSTD_getCParams(
+                compressionLevel, CNBuffSize, dictSize);
+            ZSTD_CDict* const cdict = ZSTD_createCDict_advanced(
+                dictBuffer, dictSize, ZSTD_dlm_byRef, ZSTD_dct_auto,
+                cParams, compressionLevel, ZSTD_defaultCMem);
             memset(data, 'x', sizeof(data));
             cSize = ZSTD_compress_usingCDict(cctx, compressedBuffer, compressedBufferSize,
                                              data, sizeof(data), cdict);

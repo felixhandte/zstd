@@ -48,6 +48,7 @@ struct ZSTD_CDict_s {
     ZSTD_compressedBlockState_t cBlockState;
     ZSTD_customMem customMem;
     U32 dictID;
+    U32 compressionLevel;
 };  /* typedef'd to ZSTD_CDict within "zstd.h" */
 
 ZSTD_CCtx* ZSTD_createCCtx(void)
@@ -605,9 +606,9 @@ size_t ZSTD_CCtx_loadDictionary_advanced(
         ZSTD_compressionParameters const cParams =
                 ZSTD_getCParamsFromCCtxParams(&cctx->requestedParams, cctx->pledgedSrcSizePlusOne-1, dictSize);
         cctx->cdictLocal = ZSTD_createCDict_advanced(
-                                dict, dictSize,
-                                dictLoadMethod, dictContentType,
-                                cParams, cctx->customMem);
+                dict, dictSize, dictLoadMethod, dictContentType,
+                cParams, cctx->requestedParams.compressionLevel,
+                cctx->customMem);
         cctx->cdict = cctx->cdictLocal;
         if (cctx->cdictLocal == NULL)
             return ERROR(memory_allocation);
@@ -3212,10 +3213,12 @@ static size_t ZSTD_initCDict_internal(
               const void* dictBuffer, size_t dictSize,
                     ZSTD_dictLoadMethod_e dictLoadMethod,
                     ZSTD_dictContentType_e dictContentType,
-                    ZSTD_compressionParameters cParams)
+                    ZSTD_compressionParameters cParams,
+                    int compressionLevel)
 {
     DEBUGLOG(3, "ZSTD_initCDict_internal (dictContentType:%u)", (U32)dictContentType);
     assert(!ZSTD_checkCParams(cParams));
+    cdict->compressionLevel = compressionLevel;
     cdict->matchState.cParams = cParams;
     if ((dictLoadMethod == ZSTD_dlm_byRef) || (!dictBuffer) || (!dictSize)) {
         cdict->dictBuffer = NULL;
@@ -3262,7 +3265,9 @@ static size_t ZSTD_initCDict_internal(
 ZSTD_CDict* ZSTD_createCDict_advanced(const void* dictBuffer, size_t dictSize,
                                       ZSTD_dictLoadMethod_e dictLoadMethod,
                                       ZSTD_dictContentType_e dictContentType,
-                                      ZSTD_compressionParameters cParams, ZSTD_customMem customMem)
+                                      ZSTD_compressionParameters cParams,
+                                      int compressionLevel,
+                                      ZSTD_customMem customMem)
 {
     DEBUGLOG(3, "ZSTD_createCDict_advanced, mode %u", (U32)dictContentType);
     if (!customMem.customAlloc ^ !customMem.customFree) return NULL;
@@ -3282,7 +3287,7 @@ ZSTD_CDict* ZSTD_createCDict_advanced(const void* dictBuffer, size_t dictSize,
         if (ZSTD_isError( ZSTD_initCDict_internal(cdict,
                                         dictBuffer, dictSize,
                                         dictLoadMethod, dictContentType,
-                                        cParams) )) {
+                                        cParams, compressionLevel) )) {
             ZSTD_freeCDict(cdict);
             return NULL;
         }
@@ -3296,7 +3301,8 @@ ZSTD_CDict* ZSTD_createCDict(const void* dict, size_t dictSize, int compressionL
     ZSTD_compressionParameters cParams = ZSTD_getCParams(compressionLevel, 0, dictSize);
     return ZSTD_createCDict_advanced(dict, dictSize,
                                      ZSTD_dlm_byCopy, ZSTD_dct_auto,
-                                     cParams, ZSTD_defaultCMem);
+                                     cParams, compressionLevel,
+                                     ZSTD_defaultCMem);
 }
 
 ZSTD_CDict* ZSTD_createCDict_byReference(const void* dict, size_t dictSize, int compressionLevel)
@@ -3304,7 +3310,8 @@ ZSTD_CDict* ZSTD_createCDict_byReference(const void* dict, size_t dictSize, int 
     ZSTD_compressionParameters cParams = ZSTD_getCParams(compressionLevel, 0, dictSize);
     return ZSTD_createCDict_advanced(dict, dictSize,
                                      ZSTD_dlm_byRef, ZSTD_dct_auto,
-                                     cParams, ZSTD_defaultCMem);
+                                     cParams, compressionLevel,
+                                     ZSTD_defaultCMem);
 }
 
 size_t ZSTD_freeCDict(ZSTD_CDict* cdict)
@@ -3336,7 +3343,8 @@ const ZSTD_CDict* ZSTD_initStaticCDict(
                            const void* dict, size_t dictSize,
                                  ZSTD_dictLoadMethod_e dictLoadMethod,
                                  ZSTD_dictContentType_e dictContentType,
-                                 ZSTD_compressionParameters cParams)
+                                 ZSTD_compressionParameters cParams,
+                                 int compressionLevel)
 {
     size_t const matchStateSize = ZSTD_sizeof_matchState(&cParams, /* forCCtx */ 0);
     size_t const neededSize = sizeof(ZSTD_CDict) + (dictLoadMethod == ZSTD_dlm_byRef ? 0 : dictSize)
@@ -3361,7 +3369,7 @@ const ZSTD_CDict* ZSTD_initStaticCDict(
     if (ZSTD_isError( ZSTD_initCDict_internal(cdict,
                                               dict, dictSize,
                                               ZSTD_dlm_byRef, dictContentType,
-                                              cParams) ))
+                                              cParams, compressionLevel) ))
         return NULL;
 
     return cdict;
@@ -3531,9 +3539,9 @@ size_t ZSTD_initCStream_internal(ZSTD_CStream* zcs,
             return ERROR(memory_allocation);
         }
         ZSTD_freeCDict(zcs->cdictLocal);
-        zcs->cdictLocal = ZSTD_createCDict_advanced(dict, dictSize,
-                                            ZSTD_dlm_byCopy, ZSTD_dct_auto,
-                                            params.cParams, zcs->customMem);
+        zcs->cdictLocal = ZSTD_createCDict_advanced(
+                dict, dictSize, ZSTD_dlm_byCopy, ZSTD_dct_auto,
+                params.cParams, params.compressionLevel, zcs->customMem);
         zcs->cdict = zcs->cdictLocal;
         if (zcs->cdictLocal == NULL) return ERROR(memory_allocation);
     } else {

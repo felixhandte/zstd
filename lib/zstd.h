@@ -615,7 +615,8 @@ ZSTDLIB_API const ZSTD_CDict* ZSTD_initStaticCDict(
                                         const void* dict, size_t dictSize,
                                         ZSTD_dictLoadMethod_e dictLoadMethod,
                                         ZSTD_dictContentType_e dictContentType,
-                                        ZSTD_compressionParameters cParams);
+                                        ZSTD_compressionParameters cParams,
+                                        int compressionLevel);
 
 ZSTDLIB_API const ZSTD_DDict* ZSTD_initStaticDDict(
                                         void* workspace, size_t workspaceSize,
@@ -642,6 +643,7 @@ ZSTDLIB_API ZSTD_CDict* ZSTD_createCDict_advanced(const void* dict, size_t dictS
                                                   ZSTD_dictLoadMethod_e dictLoadMethod,
                                                   ZSTD_dictContentType_e dictContentType,
                                                   ZSTD_compressionParameters cParams,
+                                                  int compressionLevel,
                                                   ZSTD_customMem customMem);
 
 ZSTDLIB_API ZSTD_DDict* ZSTD_createDDict_advanced(const void* dict, size_t dictSize,

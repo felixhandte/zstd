@@ -1364,9 +1364,9 @@ size_t ZSTDMT_initCStream_internal(
     mtctx->frameContentSize = pledgedSrcSize;
     if (dict) {
         ZSTD_freeCDict(mtctx->cdictLocal);
-        mtctx->cdictLocal = ZSTD_createCDict_advanced(dict, dictSize,
-                                                    ZSTD_dlm_byCopy, dictContentType, /* note : a loadPrefix becomes an internal CDict */
-                                                    params.cParams, mtctx->cMem);
+        mtctx->cdictLocal = ZSTD_createCDict_advanced(
+            dict, dictSize, ZSTD_dlm_byCopy, dictContentType, /* note : a loadPrefix becomes an internal CDict */
+            params.cParams, params.compressionLevel, mtctx->cMem);
         mtctx->cdict = mtctx->cdictLocal;
         if (mtctx->cdictLocal == NULL) return ERROR(memory_allocation);
     } else {

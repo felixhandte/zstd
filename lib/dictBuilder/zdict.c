@@ -720,7 +720,9 @@ static size_t ZDICT_analyzeEntropy(void*  dstBuffer, size_t maxDstSize,
     if (compressionLevel==0) compressionLevel = g_compressionLevel_default;
     params = ZSTD_getParams(compressionLevel, averageSampleSize, dictBufferSize);
 
-    esr.dict = ZSTD_createCDict_advanced(dictBuffer, dictBufferSize, ZSTD_dlm_byRef, ZSTD_dct_rawContent, params.cParams, ZSTD_defaultCMem);
+    esr.dict = ZSTD_createCDict_advanced(
+        dictBuffer, dictBufferSize, ZSTD_dlm_byRef, ZSTD_dct_rawContent,
+        params.cParams, compressionLevel, ZSTD_defaultCMem);
     esr.zc = ZSTD_createCCtx();
     esr.workPlace = malloc(ZSTD_BLOCKSIZE_MAX);
     if (!esr.dict || !esr.zc || !esr.workPlace) {

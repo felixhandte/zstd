@@ -1328,7 +1328,8 @@ static size_t ZSTD_resetCCtx_byAttachingCDict(
         assert(windowLog != 0);
         /* Resize working context table params for input only, since the dict
          * has its own tables. */
-        params.cParams = ZSTD_adjustCParams_internal(*cdict_cParams, pledgedSrcSize, 0);
+        // params.cParams = ZSTD_adjustCParams_internal(*cdict_cParams, pledgedSrcSize, 0);
+        params.cParams = *cdict_cParams;
         params.cParams.windowLog = windowLog;
         ZSTD_resetCCtx_internal(cctx, params, pledgedSrcSize,
                                 ZSTDcrp_continue, zbuff);

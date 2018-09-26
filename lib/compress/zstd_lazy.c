@@ -485,6 +485,10 @@ size_t ZSTD_HcFindBestMatch_generic (
     /* HC4 match finder */
     U32 matchIndex = ZSTD_insertAndFindFirstIndex_internal(ms, ip, mls);
 
+    /* also find dms hash at the same time */
+    const U32 dmsHash = dictMode == ZSTD_dictMatchState ?
+        ZSTD_hashPtr(ip, ms->dictMatchState->cParams.hashLog, mls) : 0;
+
     for ( ; (matchIndex>lowLimit) & (nbAttempts>0) ; nbAttempts--) {
         size_t currentMl=0;
         if ((dictMode != ZSTD_extDict) || matchIndex >= dictLimit) {
@@ -521,7 +525,7 @@ size_t ZSTD_HcFindBestMatch_generic (
         const U32 dmsIndexDelta        = dictLimit - dmsSize;
         const U32 dmsMinChain = dmsSize > dmsChainSize ? dmsSize - dmsChainSize : 0;
 
-        matchIndex = dms->hashTable[ZSTD_hashPtr(ip, dms->cParams.hashLog, mls)];
+        matchIndex = dms->hashTable[dmsHash];
 
         for ( ; (matchIndex>dmsLowestIndex) & (nbAttempts>0) ; nbAttempts--) {
             size_t currentMl=0;

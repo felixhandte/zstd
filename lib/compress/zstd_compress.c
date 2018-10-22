@@ -1332,6 +1332,25 @@ static int ZSTD_shouldAttachDict(const ZSTD_CDict* cdict,
                                  * handled in _enforceMaxDist */
 }
 
+static int ZSTD_strategiesUseSameTables(ZSTD_strategy s1, ZSTD_strategy s2) {
+    switch(s1) {
+    case ZSTD_fast:
+    case ZSTD_dfast:
+        return s2 == s1;
+    case ZSTD_greedy:
+    case ZSTD_lazy:
+    case ZSTD_lazy2:
+        return s2 >= ZSTD_greedy && s2 <= ZSTD_lazy2;
+    case ZSTD_btlazy2:
+    case ZSTD_btopt:
+    case ZSTD_btultra:
+        return s2 >= ZSTD_btlazy2 /* implicit: && s2 <= ZSTD_btultra */;
+    }
+    /* should be impossible to reach */
+    assert(0);
+    return s2 == s1;
+}
+
 static size_t ZSTD_resetCCtx_byAttachingCDict(
     ZSTD_CCtx* cctx,
     const ZSTD_CDict* cdict,
@@ -1349,20 +1368,25 @@ static size_t ZSTD_resetCCtx_byAttachingCDict(
          * TODO: Reconcile params from compression level with strategy we're
          * already committed to in cdict... */
         newCParams = ZSTD_getCParams(cdict->compressionLevel, pledgedSrcSize, 0);
-        params.cParams.windowLog = windowLog;
-        params.cParams.hashLog = newCParams.hashLog;
-        params.cParams.chainLog = newCParams.chainLog;
-        params.cParams.searchLog = newCParams.searchLog;
+        params.cParams.windowLog    = windowLog;
+        params.cParams.hashLog      = newCParams.hashLog;
+        params.cParams.chainLog     = newCParams.chainLog;
+        params.cParams.searchLog    = newCParams.searchLog;
         params.cParams.searchLength = cdict_cParams->searchLength;
-        params.cParams.strategy = cdict_cParams->strategy;
-        if (newCParams.strategy == cdict_cParams->strategy) {
+        params.cParams.targetLength = cdict_cParams->targetLength;
+        params.cParams.strategy     = cdict_cParams->strategy;
+        if (ZSTD_strategiesUseSameTables(newCParams.strategy,
+                                         cdict_cParams->strategy)) {
+            /* The strategy we'd like to use and the strategy selected in the
+             * CDict are compatible with each other. We can therefore use the
+             * strategy we want, rather than being stuck with the strategy the
+             * CDict otherwise commits us to.
+             */
+            params.cParams.strategy = newCParams.strategy;
             params.cParams.targetLength = newCParams.targetLength;
-        } else {
-            params.cParams.targetLength = cdict_cParams->targetLength;
         }
         ZSTD_resetCCtx_internal(cctx, params, pledgedSrcSize,
                                 ZSTDcrp_continue, zbuff);
-        assert(cctx->appliedParams.cParams.strategy == cdict_cParams->strategy);
     }
 
     {

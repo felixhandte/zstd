@@ -45,6 +45,7 @@ struct ZSTD_CDict_s {
     size_t dictContentSize;
     void* workspace;
     size_t workspaceSize;
+    U32 entropyWorkspace[HUF_WORKSPACE_SIZE_U32];
     ZSTD_matchState_t matchState;
     ZSTD_compressedBlockState_t cBlockState;
     ZSTD_customMem customMem;
@@ -3082,7 +3083,7 @@ static size_t ZSTD_loadZstdDictionary(ZSTD_compressedBlockState_t* bs,
                                       ZSTD_CCtx_params const* params,
                                       const void* dict, size_t dictSize,
                                       ZSTD_dictTableLoadMethod_e dtlm,
-                                      void* workspace)
+                                      void* entropyWorkspace)
 {
     const BYTE* dictPtr = (const BYTE*)dict;
     const BYTE* const dictEnd = dictPtr + dictSize;
@@ -3114,7 +3115,7 @@ static size_t ZSTD_loadZstdDictionary(ZSTD_compressedBlockState_t* bs,
         RETURN_ERROR_IF(FSE_isError(FSE_buildCTable_wksp(
                 bs->entropy.fse.offcodeCTable,
                 offcodeNCount, MaxOff, offcodeLog,
-                workspace, HUF_WORKSPACE_SIZE)),
+                entropyWorkspace, HUF_WORKSPACE_SIZE)),
             dictionary_corrupted);
         dictPtr += offcodeHeaderSize;
     }
@@ -3129,7 +3130,7 @@ static size_t ZSTD_loadZstdDictionary(ZSTD_compressedBlockState_t* bs,
         RETURN_ERROR_IF(FSE_isError(FSE_buildCTable_wksp(
                 bs->entropy.fse.matchlengthCTable,
                 matchlengthNCount, matchlengthMaxValue, matchlengthLog,
-                workspace, HUF_WORKSPACE_SIZE)),
+                entropyWorkspace, HUF_WORKSPACE_SIZE)),
             dictionary_corrupted);
         dictPtr += matchlengthHeaderSize;
     }
@@ -3144,7 +3145,7 @@ static size_t ZSTD_loadZstdDictionary(ZSTD_compressedBlockState_t* bs,
         RETURN_ERROR_IF(FSE_isError(FSE_buildCTable_wksp(
                 bs->entropy.fse.litlengthCTable,
                 litlengthNCount, litlengthMaxValue, litlengthLog,
-                workspace, HUF_WORKSPACE_SIZE)),
+                entropyWorkspace, HUF_WORKSPACE_SIZE)),
             dictionary_corrupted);
         dictPtr += litlengthHeaderSize;
     }
@@ -3188,7 +3189,7 @@ ZSTD_compress_insertDictionary(ZSTD_compressedBlockState_t* bs,
                          const void* dict, size_t dictSize,
                                ZSTD_dictContentType_e dictContentType,
                                ZSTD_dictTableLoadMethod_e dtlm,
-                               void* workspace)
+                               void* entropyWorkspace)
 {
     DEBUGLOG(4, "ZSTD_compress_insertDictionary (dictSize=%u)", (U32)dictSize);
     if ((dict==NULL) || (dictSize<=8)) return 0;
@@ -3209,7 +3210,8 @@ ZSTD_compress_insertDictionary(ZSTD_compressedBlockState_t* bs,
     }
 
     /* dict as full zstd dictionary */
-    return ZSTD_loadZstdDictionary(bs, ms, params, dict, dictSize, dtlm, workspace);
+    return ZSTD_loadZstdDictionary(bs, ms, params, dict, dictSize, dtlm,
+                                   entropyWorkspace);
 }
 
 /*! ZSTD_compressBegin_internal() :
@@ -3450,7 +3452,7 @@ size_t ZSTD_estimateCDictSize_advanced(
         ZSTD_dictLoadMethod_e dictLoadMethod)
 {
     DEBUGLOG(5, "sizeof(ZSTD_CDict) : %u", (unsigned)sizeof(ZSTD_CDict));
-    return sizeof(ZSTD_CDict) + HUF_WORKSPACE_SIZE + ZSTD_sizeof_matchState(&cParams, /* forCCtx */ 0)
+    return sizeof(ZSTD_CDict) + ZSTD_sizeof_matchState(&cParams, /* forCCtx */ 0)
            + (dictLoadMethod == ZSTD_dlm_byRef ? 0 : dictSize);
 }
 
@@ -3493,7 +3495,7 @@ static size_t ZSTD_initCDict_internal(
     ZSTD_reset_compressedBlockState(&cdict->cBlockState);
     {   void* const end = ZSTD_reset_matchState(
                 &cdict->matchState,
-                (U32*)cdict->workspace + HUF_WORKSPACE_SIZE_U32,
+                (U32*)cdict->workspace,
                 &cParams, ZSTDcrp_continue, /* forCCtx */ 0);
         assert(end == (char*)cdict->workspace + cdict->workspaceSize);
         (void)end;
@@ -3528,7 +3530,7 @@ ZSTD_CDict* ZSTD_createCDict_advanced(const void* dictBuffer, size_t dictSize,
     if (!customMem.customAlloc ^ !customMem.customFree) return NULL;
 
     {   ZSTD_CDict* const cdict = (ZSTD_CDict*)ZSTD_malloc(sizeof(ZSTD_CDict), customMem);
-        size_t const workspaceSize = HUF_WORKSPACE_SIZE + ZSTD_sizeof_matchState(&cParams, /* forCCtx */ 0);
+        size_t const workspaceSize = ZSTD_sizeof_matchState(&cParams, /* forCCtx */ 0);
         void* const workspace = ZSTD_malloc(workspaceSize, customMem);
 
         if (!cdict || !workspace) {
@@ -3600,7 +3602,7 @@ const ZSTD_CDict* ZSTD_initStaticCDict(
 {
     size_t const matchStateSize = ZSTD_sizeof_matchState(&cParams, /* forCCtx */ 0);
     size_t const neededSize = sizeof(ZSTD_CDict) + (dictLoadMethod == ZSTD_dlm_byRef ? 0 : dictSize)
-                            + HUF_WORKSPACE_SIZE + matchStateSize;
+                            + matchStateSize;
     ZSTD_CDict* const cdict = (ZSTD_CDict*) workspace;
     void* ptr;
     if ((size_t)workspace & 7) return NULL;  /* 8-aligned */
@@ -3616,7 +3618,7 @@ const ZSTD_CDict* ZSTD_initStaticCDict(
         ptr = cdict+1;
     }
     cdict->workspace = ptr;
-    cdict->workspaceSize = HUF_WORKSPACE_SIZE + matchStateSize;
+    cdict->workspaceSize = matchStateSize;
 
     if (ZSTD_isError( ZSTD_initCDict_internal(cdict,
                                               dict, dictSize,

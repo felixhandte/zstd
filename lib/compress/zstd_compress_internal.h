@@ -232,7 +232,7 @@ struct ZSTD_CCtx_s {
     size_t maxNbLdmSequences;
     rawSeqStore_t externSeqStore; /* Mutable reference to external sequences */
     ZSTD_blockState_t blockState;
-    U32* entropyWorkspace;  /* entropy workspace of HUF_WORKSPACE_SIZE bytes */
+    U32 entropyWorkspace[HUF_WORKSPACE_SIZE_U32];
 
     /* streaming */
     char*  inBuff;

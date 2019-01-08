@@ -90,15 +90,13 @@ ZSTD_CCtx* ZSTD_initStaticCCtx(void *workspace, size_t workspaceSize)
     cctx->workSpace = (void*)(cctx+1);
     cctx->workSpaceSize = workspaceSize - sizeof(ZSTD_CCtx);
 
-    /* statically sized space. entropyWorkspace never moves (but prev/next block swap places) */
-    if (cctx->workSpaceSize < HUF_WORKSPACE_SIZE + 2 * sizeof(ZSTD_compressedBlockState_t)) return NULL;
+    /* statically sized space. entropyWorkspace never moves */
+    if (cctx->workSpaceSize < HUF_WORKSPACE_SIZE) return NULL;
     assert(((size_t)cctx->workSpace & (sizeof(void*)-1)) == 0);   /* ensure correct alignment */
-    cctx->blockState.prevCBlock = (ZSTD_compressedBlockState_t*)cctx->workSpace;
-    cctx->blockState.nextCBlock = cctx->blockState.prevCBlock + 1;
-    {
-        void* const ptr = cctx->blockState.nextCBlock + 1;
-        cctx->entropyWorkspace = (U32*)ptr;
-    }
+    cctx->blockState.prevCBlock = &cctx->blockState.blocks[0];
+    cctx->blockState.nextCBlock = &cctx->blockState.blocks[1];
+    cctx->entropyWorkspace = (U32 *) cctx->workSpace;
+
     cctx->bmi2 = ZSTD_cpuid_bmi2(ZSTD_cpuid());
     return cctx;
 }
@@ -1019,14 +1017,13 @@ size_t ZSTD_estimateCCtxSize_usingCCtxParams(const ZSTD_CCtx_params* params)
         size_t const maxNbSeq = blockSize / divider;
         size_t const tokenSpace = WILDCOPY_OVERLENGTH + blockSize + 11*maxNbSeq;
         size_t const entropySpace = HUF_WORKSPACE_SIZE;
-        size_t const blockStateSpace = 2 * sizeof(ZSTD_compressedBlockState_t);
         size_t const matchStateSize = ZSTD_sizeof_matchState(&cParams, /* forCCtx */ 1);
 
         size_t const ldmSpace = ZSTD_ldm_getTableSize(params->ldmParams);
         size_t const ldmSeqSpace = ZSTD_ldm_getMaxNbSeq(params->ldmParams, blockSize) * sizeof(rawSeq);
 
-        size_t const neededSpace = entropySpace + blockStateSpace + tokenSpace +
-                                   matchStateSize + ldmSpace + ldmSeqSpace;
+        size_t const neededSpace = entropySpace + tokenSpace + matchStateSize +
+                                   ldmSpace + ldmSeqSpace;
 
         DEBUGLOG(5, "sizeof(ZSTD_CCtx) : %u", (U32)sizeof(ZSTD_CCtx));
         DEBUGLOG(5, "estimate workSpace : %u", (U32)neededSpace);
@@ -1382,13 +1379,12 @@ static size_t ZSTD_resetCCtx_internal(ZSTD_CCtx* zc,
 
         /* Check if workSpace is large enough, alloc a new one if needed */
         {   size_t const entropySpace = HUF_WORKSPACE_SIZE;
-            size_t const blockStateSpace = 2 * sizeof(ZSTD_compressedBlockState_t);
             size_t const bufferSpace = buffInSize + buffOutSize;
             size_t const ldmSpace = ZSTD_ldm_getTableSize(params.ldmParams);
             size_t const ldmSeqSpace = maxNbLdmSeq * sizeof(rawSeq);
 
-            size_t const neededSpace = entropySpace + blockStateSpace + ldmSpace +
-                                       ldmSeqSpace + matchStateSize + tokenSpace +
+            size_t const neededSpace = entropySpace + ldmSpace + ldmSeqSpace +
+                                       matchStateSize + tokenSpace +
                                        bufferSpace;
 
             int const workSpaceTooSmall = zc->workSpaceSize < neededSpace;
@@ -1418,11 +1414,10 @@ static size_t ZSTD_resetCCtx_internal(ZSTD_CCtx* zc,
                  * entropyWorkspace never moves,
                  * though prev/next block swap places */
                 assert(((size_t)zc->workSpace & 3) == 0);   /* ensure correct alignment */
-                assert(zc->workSpaceSize >= 2 * sizeof(ZSTD_compressedBlockState_t));
-                zc->blockState.prevCBlock = (ZSTD_compressedBlockState_t*)zc->workSpace;
-                zc->blockState.nextCBlock = zc->blockState.prevCBlock + 1;
-                ptr = zc->blockState.nextCBlock + 1;
-                zc->entropyWorkspace = (U32*)ptr;
+                zc->blockState.prevCBlock = &zc->blockState.blocks[0];
+                zc->blockState.nextCBlock = &zc->blockState.blocks[1];
+
+                zc->entropyWorkspace = (U32*)zc->workSpace;
         }   }
 
         /* init params */

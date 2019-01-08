@@ -142,6 +142,9 @@ typedef struct {
     ZSTD_compressedBlockState_t* prevCBlock;
     ZSTD_compressedBlockState_t* nextCBlock;
     ZSTD_matchState_t matchState;
+    /* The prevCBlock and nextCBlock trade off pointing to these two blocks.
+     * It is in effect a circular buffer of size two. */
+    ZSTD_compressedBlockState_t blocks[2];
 } ZSTD_blockState_t;
 
 typedef struct {

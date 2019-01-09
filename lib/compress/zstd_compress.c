@@ -1273,6 +1273,18 @@ static size_t ZSTD_continueCCtx(ZSTD_CCtx* cctx, ZSTD_CCtx_params params, U64 pl
 
 typedef enum { ZSTDcrp_continue, ZSTDcrp_noMemset } ZSTD_compResetPolicy_e;
 
+/* Macro to reserve space from a pre-allocated workspace, by advancing a
+ * pointer by the requested size.
+ */
+#define ZSTD_RESERVE_WS(ptr, type, num) \
+    ((type*) ZSTD_reserve_workspace(&(ptr), (num) * sizeof(type)))
+
+static void *ZSTD_reserve_workspace(void **ws, size_t requested) {
+    void *buf = *ws;
+    *ws = (BYTE *)*ws + requested;
+    return buf;
+}
+
 static void*
 ZSTD_reset_matchState(ZSTD_matchState_t* ms,
                       void* ptr,
@@ -1297,25 +1309,21 @@ ZSTD_reset_matchState(ZSTD_matchState_t* ms,
     /* opt parser space */
     if (forCCtx && (cParams->strategy >= ZSTD_btopt)) {
         DEBUGLOG(4, "reserving optimal parser space");
-        ms->opt.litFreq = (unsigned*)ptr;
-        ms->opt.litLengthFreq = ms->opt.litFreq + (1<<Litbits);
-        ms->opt.matchLengthFreq = ms->opt.litLengthFreq + (MaxLL+1);
-        ms->opt.offCodeFreq = ms->opt.matchLengthFreq + (MaxML+1);
-        ptr = ms->opt.offCodeFreq + (MaxOff+1);
-        ms->opt.matchTable = (ZSTD_match_t*)ptr;
-        ptr = ms->opt.matchTable + ZSTD_OPT_NUM+1;
-        ms->opt.priceTable = (ZSTD_optimal_t*)ptr;
-        ptr = ms->opt.priceTable + ZSTD_OPT_NUM+1;
+        ms->opt.litFreq = ZSTD_RESERVE_WS(ptr, unsigned, 1<<Litbits);
+        ms->opt.litLengthFreq = ZSTD_RESERVE_WS(ptr, unsigned, MaxLL+1);
+        ms->opt.matchLengthFreq = ZSTD_RESERVE_WS(ptr, unsigned, MaxML+1);
+        ms->opt.offCodeFreq = ZSTD_RESERVE_WS(ptr, unsigned, MaxOff+1);
+        ms->opt.matchTable = ZSTD_RESERVE_WS(ptr, ZSTD_match_t, ZSTD_OPT_NUM+1);
+        ms->opt.priceTable = ZSTD_RESERVE_WS(ptr, ZSTD_optimal_t, ZSTD_OPT_NUM+1);
     }
 
     /* table Space */
     DEBUGLOG(4, "reset table : %u", crp!=ZSTDcrp_noMemset);
     assert(((size_t)ptr & 3) == 0);  /* ensure ptr is properly aligned */
     if (crp!=ZSTDcrp_noMemset) memset(ptr, 0, tableSpace);   /* reset tables only */
-    ms->hashTable = (U32*)(ptr);
-    ms->chainTable = ms->hashTable + hSize;
-    ms->hashTable3 = ms->chainTable + chainSize;
-    ptr = ms->hashTable3 + h3Size;
+    ms->hashTable = ZSTD_RESERVE_WS(ptr, U32, hSize);
+    ms->chainTable = ZSTD_RESERVE_WS(ptr, U32, chainSize);
+    ms->hashTable3 = ZSTD_RESERVE_WS(ptr, U32, h3Size);
 
     ms->cParams = *cParams;
 
@@ -1434,12 +1442,10 @@ static size_t ZSTD_resetCCtx_internal(ZSTD_CCtx* zc,
         /* initialize bucketOffsets table later for pointer alignment */
         if (params.ldmParams.enableLdm) {
             size_t const ldmHSize = ((size_t)1) << params.ldmParams.hashLog;
-            memset(ptr, 0, ldmHSize * sizeof(ldmEntry_t));
             assert(((size_t)ptr & 3) == 0); /* ensure ptr is properly aligned */
-            zc->ldmState.hashTable = (ldmEntry_t*)ptr;
-            ptr = zc->ldmState.hashTable + ldmHSize;
-            zc->ldmSequences = (rawSeq*)ptr;
-            ptr = zc->ldmSequences + maxNbLdmSeq;
+            zc->ldmState.hashTable = ZSTD_RESERVE_WS(ptr, ldmEntry_t, ldmHSize);
+            memset(zc->ldmState.hashTable, 0, ldmHSize * sizeof(ldmEntry_t));
+            zc->ldmSequences = ZSTD_RESERVE_WS(ptr, rawSeq, maxNbLdmSeq);
             zc->maxNbLdmSequences = maxNbLdmSeq;
 
             memset(&zc->ldmState.window, 0, sizeof(zc->ldmState.window));
@@ -1450,17 +1456,15 @@ static size_t ZSTD_resetCCtx_internal(ZSTD_CCtx* zc,
 
         /* sequences storage */
         zc->seqStore.maxNbSeq = maxNbSeq;
-        zc->seqStore.sequencesStart = (seqDef*)ptr;
-        ptr = zc->seqStore.sequencesStart + maxNbSeq;
-        zc->seqStore.llCode = (BYTE*) ptr;
-        zc->seqStore.mlCode = zc->seqStore.llCode + maxNbSeq;
-        zc->seqStore.ofCode = zc->seqStore.mlCode + maxNbSeq;
-        zc->seqStore.litStart = zc->seqStore.ofCode + maxNbSeq;
+        zc->seqStore.sequencesStart = ZSTD_RESERVE_WS(ptr, seqDef, maxNbSeq);
+        zc->seqStore.llCode = ZSTD_RESERVE_WS(ptr, BYTE, maxNbSeq);
+        zc->seqStore.mlCode = ZSTD_RESERVE_WS(ptr, BYTE, maxNbSeq);
+        zc->seqStore.ofCode = ZSTD_RESERVE_WS(ptr, BYTE, maxNbSeq);
+        zc->seqStore.litStart = ZSTD_RESERVE_WS(ptr, BYTE, blockSize + WILDCOPY_OVERLENGTH);
         /* ZSTD_wildcopy() is used to copy into the literals buffer,
          * so we have to oversize the buffer by WILDCOPY_OVERLENGTH bytes.
          */
         zc->seqStore.maxNbLit = blockSize;
-        ptr = zc->seqStore.litStart + blockSize + WILDCOPY_OVERLENGTH;
 
         /* ldm bucketOffsets table */
         if (params.ldmParams.enableLdm) {
@@ -1468,19 +1472,16 @@ static size_t ZSTD_resetCCtx_internal(ZSTD_CCtx* zc,
                   ((size_t)1) << (params.ldmParams.hashLog -
                                   params.ldmParams.bucketSizeLog);
             memset(ptr, 0, ldmBucketSize);
-            zc->ldmState.bucketOffsets = (BYTE*)ptr;
-            ptr = zc->ldmState.bucketOffsets + ldmBucketSize;
+            zc->ldmState.bucketOffsets = ZSTD_RESERVE_WS(ptr, BYTE, ldmBucketSize);
             ZSTD_window_clear(&zc->ldmState.window);
         }
         ZSTD_referenceExternalSequences(zc, NULL, 0);
 
         /* buffers */
         zc->inBuffSize = buffInSize;
-        zc->inBuff = (char*)ptr;
+        zc->inBuff = ZSTD_RESERVE_WS(ptr, char, buffInSize);
         zc->outBuffSize = buffOutSize;
-        zc->outBuff = zc->inBuff + buffInSize;
-
-        ptr = (char*)ptr + buffInSize + buffOutSize;
+        zc->outBuff = ZSTD_RESERVE_WS(ptr, char, buffOutSize);
 
         DEBUGLOG(4, "Using %lu of %lu workspace bytes",
                  (size_t)((BYTE*)ptr - (BYTE*)zc->workSpace),

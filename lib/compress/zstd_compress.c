@@ -1480,6 +1480,15 @@ static size_t ZSTD_resetCCtx_internal(ZSTD_CCtx* zc,
         zc->outBuffSize = buffOutSize;
         zc->outBuff = zc->inBuff + buffInSize;
 
+        ptr = (char*)ptr + buffInSize + buffOutSize;
+
+        DEBUGLOG(4, "Using %lu of %lu workspace bytes",
+                 (size_t)((BYTE*)ptr - (BYTE*)zc->workSpace),
+                 zc->workSpaceSize);
+
+        /* ensure we haven't overrun the workspace */
+        assert((size_t)((BYTE*)ptr - (BYTE*)zc->workSpace) <= zc->workSpaceSize);
+
         return 0;
     }
 }

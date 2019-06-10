@@ -92,7 +92,7 @@ allnothread: fullbench fuzzer paramgrill datagen decodecorpus
 
 dll: fuzzer-dll zstreamtest-dll
 
-PHONY: zstd zstd32 zstd-nolegacy  # must be phony, only external makefile knows how to build them, or if they need an update
+.PHONY: zstd zstd32 zstd-nolegacy  # must be phony, only external makefile knows how to build them, or if they need an update
 zstd zstd32 zstd-nolegacy:
 	$(MAKE) -C $(PRGDIR) $@ MOREFLAGS+="$(DEBUGFLAGS)"
 
@@ -310,7 +310,7 @@ shortest: test-zstd
 fuzztest: test-fuzzer test-zstream test-decodecorpus
 
 .PHONY: test
-test: test-zstd test-fullbench test-fuzzer test-zstream test-invalidDictionaries test-legacy test-decodecorpus
+test: test-zstd test-fullbench test-fuzzer test-zstream test-invalidDictionaries test-legacy test-decodecorpus test-symlink
 ifeq ($(QEMU_SYS),)
 test: test-pool
 endif
@@ -334,6 +334,11 @@ test-zstd test-zstd32 test-zstd-nolegacy: datagen
 	file $(ZSTD)
 	ZSTD="$(QEMU_SYS) $(ZSTD)" ./playTests.sh $(ZSTDRTTEST)
 
+.PHONY: test-symlink
+test-symlink: ZSTD = $(PRGDIR)/zstd
+test-symlink: zstd
+	file $(ZSTD)
+	ZSTD="$(QEMU_SYS) $(ZSTD)" ./symlinkTest.sh
 
 test-gzstd: gzstd
 	$(PRGDIR)/zstd -f README.md test-zstd-speed.py

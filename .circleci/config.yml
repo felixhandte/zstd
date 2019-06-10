@@ -13,7 +13,7 @@ jobs:
           name: Test
           command: |
             cc -v; CFLAGS="-O0 -Werror" make all && make clean
-            make c99build         ; make clean
+            make c99build         ; make -C tests test-symlink; make clean
             make c11build         ; make clean
             make aarch64build     ; make clean
             make -j regressiontest; make clean

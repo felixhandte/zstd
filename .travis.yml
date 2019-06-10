@@ -144,20 +144,16 @@ matrix:
         - CC=clang-3.8 make tsan-test-zstream
         - CC=clang-3.8 make tsan-fuzztest
 
-    - name: C++ and gnu90 compatibility
+    - name: C++, gnu90, c99 compatibility
       if: branch = master
       script:
         - make cxxtest
         - make clean
         - make gnu90build
         - make clean
-        - make travis-install    # just ensures `make install` works
-
-    - name: c99 compatibility
-      if: branch = master
-      script:
         - make c99build
-        - make -C tests test-zstd
+        - make clean
+        - make travis-install    # just ensures `make install` works
 
     - name: PPC64
       if: branch = master

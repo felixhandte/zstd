@@ -47,6 +47,19 @@ extern "C" {
 #  endif
 #endif
 
+/* Starting in C++17, noexcept can appear in function pointer type
+ * specifications. When this feature is available to us, zstd uses it to require
+ * that functions that are given to zstd, and which zstd might call, are all
+ * noexcept, because zstd if going to claim to be noexcept. */
+#ifndef ZSTD_NOEXCEPT_IN_TYPEDEF
+#  if defined(__cplusplus) && __cplusplus >= 201703L
+#    define ZSTD_NOEXCEPT_IN_TYPEDEF ZSTD_NOEXCEPT
+#  else
+#    define ZSTD_NOEXCEPT_IN_TYPEDEF
+#  endif
+#endif
+
+
 
 /*******************************************************************************
   Introduction

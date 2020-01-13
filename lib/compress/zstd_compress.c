@@ -41,7 +41,7 @@
  * or targetCBlockSize, the overhead of headers can make the compressed data to
  * be larger than the return value of ZSTD_compressBound().
  */
-size_t ZSTD_compressBound(size_t srcSize) {
+size_t ZSTD_compressBound(size_t srcSize) ZSTD_NOEXCEPT {
     return ZSTD_COMPRESSBOUND(srcSize);
 }
 
@@ -61,8 +61,7 @@ struct ZSTD_CDict_s {
     int compressionLevel; /* 0 indicates that advanced API was used to select CDict params */
 };  /* typedef'd to ZSTD_CDict within "zstd.h" */
 
-ZSTD_CCtx* ZSTD_createCCtx(void)
-{
+ZSTD_CCtx* ZSTD_createCCtx(void) ZSTD_NOEXCEPT {
     return ZSTD_createCCtx_advanced(ZSTD_defaultCMem);
 }
 
@@ -146,8 +145,7 @@ static void ZSTD_freeCCtxContent(ZSTD_CCtx* cctx)
     ZSTD_cwksp_free(&cctx->workspace, cctx->customMem);
 }
 
-size_t ZSTD_freeCCtx(ZSTD_CCtx* cctx)
-{
+size_t ZSTD_freeCCtx(ZSTD_CCtx* cctx) ZSTD_NOEXCEPT {
     if (cctx==NULL) return 0;   /* support free on NULL */
     RETURN_ERROR_IF(cctx->staticSize, memory_allocation,
                     "not compatible with static CCtx");
@@ -3268,7 +3266,7 @@ size_t ZSTD_compressCCtx(ZSTD_CCtx* cctx,
 
 size_t ZSTD_compress(void* dst, size_t dstCapacity,
                const void* src, size_t srcSize,
-                     int compressionLevel)
+                     int compressionLevel) ZSTD_NOEXCEPT
 {
     size_t result;
     ZSTD_CCtx ctxBody;
@@ -4082,8 +4080,8 @@ size_t ZSTD_endStream(ZSTD_CStream* zcs, ZSTD_outBuffer* output)
 /*-=====  Pre-defined compression levels  =====-*/
 
 #define ZSTD_MAX_CLEVEL     22
-int ZSTD_maxCLevel(void) { return ZSTD_MAX_CLEVEL; }
-int ZSTD_minCLevel(void) { return (int)-ZSTD_TARGETLENGTH_MAX; }
+int ZSTD_maxCLevel(void) ZSTD_NOEXCEPT { return ZSTD_MAX_CLEVEL; }
+int ZSTD_minCLevel(void) ZSTD_NOEXCEPT { return (int)-ZSTD_TARGETLENGTH_MAX; }
 
 static const ZSTD_compressionParameters ZSTD_defaultCParameters[4][ZSTD_MAX_CLEVEL+1] = {
 {   /* "default" - for any srcSize > 256 KB */

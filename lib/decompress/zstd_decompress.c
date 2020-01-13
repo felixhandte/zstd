@@ -330,7 +330,7 @@ size_t ZSTD_getFrameHeader(ZSTD_frameHeader* zfhPtr, const void* src, size_t src
  *         - ZSTD_CONTENTSIZE_UNKNOWN if the size cannot be determined
  *         - ZSTD_CONTENTSIZE_ERROR if an error occurred (e.g. invalid magic number, srcSize too small) */
 unsigned long long ZSTD_getFrameContentSize(const void *src, size_t srcSize)
-{
+        ZSTD_NOEXCEPT {
 #if defined(ZSTD_LEGACY_SUPPORT) && (ZSTD_LEGACY_SUPPORT >= 1)
     if (ZSTD_isLegacy(src, srcSize)) {
         unsigned long long const ret = ZSTD_getDecompressedSize_legacy(src, srcSize);
@@ -418,7 +418,7 @@ unsigned long long ZSTD_findDecompressedSize(const void* src, size_t srcSize)
                    - decompressed size field is not present in frame header
                    - frame header unknown / not supported
                    - frame header not complete (`srcSize` too small) */
-unsigned long long ZSTD_getDecompressedSize(const void* src, size_t srcSize)
+unsigned long long ZSTD_getDecompressedSize(const void* src, size_t srcSize) ZSTD_NOEXCEPT
 {
     unsigned long long const ret = ZSTD_getFrameContentSize(src, srcSize);
     ZSTD_STATIC_ASSERT(ZSTD_CONTENTSIZE_ERROR < ZSTD_CONTENTSIZE_UNKNOWN);
@@ -525,7 +525,7 @@ static ZSTD_frameSizeInfo ZSTD_findFrameSizeInfo(const void* src, size_t srcSize
  *  `srcSize` must be at least as large as the frame contained
  *  @return : the compressed size of the frame starting at `src` */
 size_t ZSTD_findFrameCompressedSize(const void *src, size_t srcSize)
-{
+        ZSTD_NOEXCEPT {
     ZSTD_frameSizeInfo const frameSizeInfo = ZSTD_findFrameSizeInfo(src, srcSize);
     return frameSizeInfo.compressedSize;
 }
@@ -822,8 +822,9 @@ size_t ZSTD_decompressDCtx(ZSTD_DCtx* dctx, void* dst, size_t dstCapacity, const
 }
 
 
-size_t ZSTD_decompress(void* dst, size_t dstCapacity, const void* src, size_t srcSize)
-{
+size_t ZSTD_decompress(
+              void* dst, size_t dstCapacity,
+        const void* src, size_t srcSize) ZSTD_NOEXCEPT {
 #if defined(ZSTD_HEAPMODE) && (ZSTD_HEAPMODE>=1)
     size_t regenSize;
     ZSTD_DCtx* const dctx = ZSTD_createDCtx();

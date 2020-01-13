@@ -32,13 +32,15 @@ const char* ZSTD_versionString(void) { return ZSTD_VERSION_STRING; }
 ******************************************/
 #undef ZSTD_isError   /* defined within zstd_internal.h */
 /*! ZSTD_isError() :
- *  tells if a return value is an error code
- *  symbol is required for external callers */
-unsigned ZSTD_isError(size_t code) { return ERR_isError(code); }
+ *  Tells if a return value is an error code.
+ *  Symbol is required for external callers. */
+unsigned ZSTD_isError(size_t code) ZSTD_NOEXCEPT { return ERR_isError(code); }
 
 /*! ZSTD_getErrorName() :
- *  provides error code string from function result (useful for debugging) */
-const char* ZSTD_getErrorName(size_t code) { return ERR_getErrorName(code); }
+ *  Provides error code string from function result (useful for debugging). */
+const char* ZSTD_getErrorName(size_t code) ZSTD_NOEXCEPT {
+    return ERR_getErrorName(code);
+}
 
 /*! ZSTD_getError() :
  *  convert a `size_t` function result into a proper ZSTD_errorCode enum */

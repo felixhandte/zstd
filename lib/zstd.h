@@ -1384,10 +1384,17 @@ ZSTDLIB_API const ZSTD_DDict* ZSTD_initStaticDDict(
  *  ZSTD_customMem is provided at creation time, using ZSTD_create*_advanced() variants listed below.
  *  All allocation/free operations will be completed using these custom variants instead of regular <stdlib.h> ones.
  */
-typedef void* (*ZSTD_allocFunction) (void* opaque, size_t size);
-typedef void  (*ZSTD_freeFunction) (void* opaque, void* address);
-typedef struct { ZSTD_allocFunction customAlloc; ZSTD_freeFunction customFree; void* opaque; } ZSTD_customMem;
-static ZSTD_customMem const ZSTD_defaultCMem = { NULL, NULL, NULL };  /**< this constant defers to stdlib's functions */
+typedef void* (*ZSTD_allocFunction)(void* opaque, size_t size)
+    ZSTD_NOEXCEPT_IN_TYPEDEF;
+typedef void  (*ZSTD_freeFunction)(void* opaque, void* address)
+    ZSTD_NOEXCEPT_IN_TYPEDEF;
+typedef struct {
+  ZSTD_allocFunction customAlloc;
+  ZSTD_freeFunction customFree;
+  void* opaque;
+} ZSTD_customMem;
+/** this constant defers to stdlib's functions */
+static ZSTD_customMem const ZSTD_defaultCMem = { NULL, NULL, NULL };
 
 ZSTDLIB_API ZSTD_CCtx*    ZSTD_createCCtx_advanced(ZSTD_customMem customMem);
 ZSTDLIB_API ZSTD_CStream* ZSTD_createCStream_advanced(ZSTD_customMem customMem);

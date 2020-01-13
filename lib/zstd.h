@@ -35,6 +35,18 @@ extern "C" {
 #  define ZSTDLIB_API ZSTDLIB_VISIBILITY
 #endif
 
+/* =====   ZSTD_NOEXCEPT : mark library functions noexcept in C++   ===== */
+/* C methods are not implicitly noexcept in C++. This can lead to unnecessary
+ * code generation to handle exceptions. Since zstd is in fact noexcept, its
+ * functions should be marked as such. */
+#ifndef ZSTD_NOEXCEPT
+#  if defined (__cplusplus)
+#    define ZSTD_NOEXCEPT noexcept
+#  else
+#    define ZSTD_NOEXCEPT
+#  endif
+#endif
+
 
 /*******************************************************************************
   Introduction

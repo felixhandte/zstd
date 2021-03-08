@@ -255,13 +255,16 @@ ZSTDLIB_API size_t ZSTD_decompressDCtx(ZSTD_DCtx* dctx,
 /* Compression strategies, listed from fastest to strongest */
 typedef enum { ZSTD_fast=1,
                ZSTD_dfast=2,
-               ZSTD_greedy=3,
-               ZSTD_lazy=4,
-               ZSTD_lazy2=5,
-               ZSTD_btlazy2=6,
-               ZSTD_btopt=7,
-               ZSTD_btultra=8,
-               ZSTD_btultra2=9
+               ZSTD_greedy_row=3,
+               ZSTD_greedy=4,
+               ZSTD_lazy_row=5,
+               ZSTD_lazy=6,
+               ZSTD_lazy2_row=7,
+               ZSTD_lazy2=8,
+               ZSTD_btlazy2=9,
+               ZSTD_btopt=10,
+               ZSTD_btultra=11,
+               ZSTD_btultra2=12
                /* note : new strategies _might_ be added in the future.
                          Only the order (from fast to strong) is guaranteed */
 } ZSTD_strategy;
@@ -419,6 +422,7 @@ typedef enum {
      * ZSTD_c_stableOutBuffer
      * ZSTD_c_blockDelimiters
      * ZSTD_c_validateSequences
+     * ZSTD_c_useRowMatchfinder
      * Because they are not stable, it's necessary to define ZSTD_STATIC_LINKING_ONLY to access them.
      * note : never ever use experimentalParam? names directly;
      *        also, the enums values themselves are unstable and can still change.
@@ -434,7 +438,8 @@ typedef enum {
      ZSTD_c_experimentalParam9=1006,
      ZSTD_c_experimentalParam10=1007,
      ZSTD_c_experimentalParam11=1008,
-     ZSTD_c_experimentalParam12=1009
+     ZSTD_c_experimentalParam12=1009,
+     ZSTD_c_experimentalParam13=1010
 } ZSTD_cParameter;
 
 typedef struct {
@@ -1831,6 +1836,12 @@ ZSTDLIB_API size_t ZSTD_CCtx_refPrefix_advanced(ZSTD_CCtx* cctx, const void* pre
  *
  */
 #define ZSTD_c_validateSequences ZSTD_c_experimentalParam12
+
+/* ZSTD_c_useRowMatchfinder
+ * Default is 0 == disabled. Set to 1 to use a new set of compression parameters
+ * that may use the new row-based matchfinder for the middle compression levels.
+ */
+#define ZSTD_c_useRowMatchfinder ZSTD_c_experimentalParam13
 
 /*! ZSTD_CCtx_getParameter() :
  *  Get the requested compression parameter value, selected by enum ZSTD_cParameter,

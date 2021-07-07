@@ -72,7 +72,7 @@ extern "C" {
 /*------   Version   ------*/
 #define ZSTD_VERSION_MAJOR    1
 #define ZSTD_VERSION_MINOR    5
-#define ZSTD_VERSION_RELEASE  0
+#define ZSTD_VERSION_RELEASE  1
 #define ZSTD_VERSION_NUMBER  (ZSTD_VERSION_MAJOR *100*100 + ZSTD_VERSION_MINOR *100 + ZSTD_VERSION_RELEASE)
 
 /*! ZSTD_versionNumber() :
@@ -2225,7 +2225,7 @@ size_t ZSTD_initCStream_advanced(ZSTD_CStream* zcs,
  * This function is DEPRECATED, and equivalent to:
  *     ZSTD_CCtx_reset(zcs, ZSTD_reset_session_only);
  *     ZSTD_CCtx_refCDict(zcs, cdict);
- * 
+ *
  * note : cdict will just be referenced, and must outlive compression session
  * This prototype will generate compilation warnings.
  */

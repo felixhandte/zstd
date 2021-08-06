@@ -459,7 +459,10 @@ HUF_decompress4X1_usingDTable_internal_body(
     }
 }
 
-static TARGET_ATTRIBUTE("bmi2")
+static
+#ifdef __x86_64__
+TARGET_ATTRIBUTE("bmi2")
+#endif
 size_t HUF_decompress4X1_usingDTable_internal_bmi2(void* dst, size_t dstSize, void const* cSrc,
                     size_t cSrcSize, HUF_DTable const* DTable) {
     return HUF_decompress4X1_usingDTable_internal_body(dst, dstSize, cSrc, cSrcSize, DTable);
@@ -1438,7 +1441,10 @@ HUF_decompress4X2_usingDTable_internal_body(
     }
 }
 
-static TARGET_ATTRIBUTE("bmi2")
+static
+#ifdef __x86_64__
+TARGET_ATTRIBUTE("bmi2")
+#endif
 size_t HUF_decompress4X2_usingDTable_internal_bmi2(void* dst, size_t dstSize, void const* cSrc,
                     size_t cSrcSize, HUF_DTable const* DTable) {
     return HUF_decompress4X2_usingDTable_internal_body(dst, dstSize, cSrc, cSrcSize, DTable);
@@ -1452,7 +1458,11 @@ size_t HUF_decompress4X2_usingDTable_internal_default(void* dst, size_t dstSize,
 
 void HUF_decompress4X2_usingDTable_internal_bmi2_asm_loop(HUF_decompress4X1_AsmArgs* args);
 
-static TARGET_ATTRIBUTE("bmi2") size_t
+static
+#ifdef __x86_64__
+TARGET_ATTRIBUTE("bmi2")
+#endif
+size_t
 HUF_decompress4X2_usingDTable_internal_bmi2_asm(
           void* dst,  size_t dstSize,
     const void* cSrc, size_t cSrcSize,

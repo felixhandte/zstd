@@ -75,6 +75,9 @@ CPPFLAGS_DYNLIB  = -DZSTD_MULTITHREAD # dynamic library build defaults to multi-
 LDFLAGS_DYNLIB   = -pthread
 CPPFLAGS_STATLIB =                    # static library build defaults to single-threaded
 
+# Tries to figure out the target architecture by invoking the compiler.
+ARCH := $(shell /bin/echo -e "\#if defined(__x86_64__) && __x86_64__\namd64\n\#elif defined(__i386__) && __i386__\nx86\n\#elif defined(__aarch64__) && __aarch64__\naarch64\n\#elif defined(__arm__) && __arm__\narm\n\#endif" | $(CC) $(CPPFLAGS) $(CFLAGS) -E -x c - | sed -n "/^[^\#]/p")
+
 HAVE_COLORNEVER = $(shell echo a | grep --color=never a > /dev/null 2> /dev/null && echo 1 || echo 0)
 GREP_OPTIONS ?=
 ifeq ($HAVE_COLORNEVER, 1)
@@ -85,7 +88,9 @@ SED_ERE_OPT ?= -E
 
 ZSTDCOMMON_FILES := $(sort $(wildcard common/*.c))
 ZSTDCOMP_FILES := $(sort $(wildcard compress/*.c))
-ZSTDDECOMP_FILES := $(sort $(wildcard decompress/*.c) decompress/huf_decompress_x86_bmi2.S)
+ZSTDDECOMP_AMD64_FILES := decompress/huf_decompress_x86_bmi2.S
+ZSTDDECOMP_FILES := $(sort $(wildcard decompress/*.c) $(if $(filter amd64,$(ARCH)),$(ZSTDDECOMP_AMD64_FILES)))
+
 ZDICT_FILES := $(sort $(wildcard dictBuilder/*.c))
 ZDEPR_FILES := $(sort $(wildcard deprecated/*.c))
 ZSTD_FILES := $(ZSTDCOMMON_FILES)

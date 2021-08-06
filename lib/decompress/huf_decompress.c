@@ -459,14 +459,15 @@ HUF_decompress4X1_usingDTable_internal_body(
     }
 }
 
-static TARGET_ATTRIBUTE("bmi2")
-size_t HUF_decompress4X1_usingDTable_internal_bmi2(void* dst, size_t dstSize, void const* cSrc,
+static
+size_t HUF_decompress4X1_usingDTable_internal_default(void* dst, size_t dstSize, void const* cSrc,
                     size_t cSrcSize, HUF_DTable const* DTable) {
     return HUF_decompress4X1_usingDTable_internal_body(dst, dstSize, cSrc, cSrcSize, DTable);
 }
 
-static
-size_t HUF_decompress4X1_usingDTable_internal_default(void* dst, size_t dstSize, void const* cSrc,
+#ifdef __x86_64__
+static TARGET_ATTRIBUTE("bmi2")
+size_t HUF_decompress4X1_usingDTable_internal_bmi2(void* dst, size_t dstSize, void const* cSrc,
                     size_t cSrcSize, HUF_DTable const* DTable) {
     return HUF_decompress4X1_usingDTable_internal_body(dst, dstSize, cSrc, cSrcSize, DTable);
 }
@@ -594,6 +595,7 @@ HUF_decompress4X1_usingDTable_internal_bmi2_asm(
     /* decoded size */
     return dstSize;
 }
+#endif /* __x86_64__ */
 
 #if 0
 static BYTE* compute_iters(BYTE const* ilimit, BYTE const* ip1, BYTE* op4, BYTE* oend)
@@ -813,6 +815,7 @@ HUF_DGEN(HUF_decompress1X1_usingDTable_internal)
 static size_t HUF_decompress4X1_usingDTable_internal(void* dst, size_t dstSize, void const* cSrc,
                     size_t cSrcSize, HUF_DTable const* DTable, int bmi2)
 {
+#ifdef __x86_64__
     if (kCheck && bmi2) {
         HUF_decompress4X1_usingDTable_internal_default(dst, dstSize, cSrc, cSrcSize, DTable);
         XXH64_hash_t const checksum0 = XXH64(dst, dstSize, 0);
@@ -825,6 +828,7 @@ static size_t HUF_decompress4X1_usingDTable_internal(void* dst, size_t dstSize, 
     if (bmi2) {
         return HUF_decompress4X1_usingDTable_internal_bmi2_asm(dst, dstSize, cSrc, cSrcSize, DTable);
     }
+#endif /* __x86_64__ */
     return HUF_decompress4X1_usingDTable_internal_default(dst, dstSize, cSrc, cSrcSize, DTable);
 }
 
@@ -1438,14 +1442,15 @@ HUF_decompress4X2_usingDTable_internal_body(
     }
 }
 
-static TARGET_ATTRIBUTE("bmi2")
-size_t HUF_decompress4X2_usingDTable_internal_bmi2(void* dst, size_t dstSize, void const* cSrc,
+static
+size_t HUF_decompress4X2_usingDTable_internal_default(void* dst, size_t dstSize, void const* cSrc,
                     size_t cSrcSize, HUF_DTable const* DTable) {
     return HUF_decompress4X2_usingDTable_internal_body(dst, dstSize, cSrc, cSrcSize, DTable);
 }
 
-static
-size_t HUF_decompress4X2_usingDTable_internal_default(void* dst, size_t dstSize, void const* cSrc,
+#ifdef __x86_64__
+static TARGET_ATTRIBUTE("bmi2")
+size_t HUF_decompress4X2_usingDTable_internal_bmi2(void* dst, size_t dstSize, void const* cSrc,
                     size_t cSrcSize, HUF_DTable const* DTable) {
     return HUF_decompress4X2_usingDTable_internal_body(dst, dstSize, cSrc, cSrcSize, DTable);
 }
@@ -1550,10 +1555,12 @@ HUF_decompress4X2_usingDTable_internal_bmi2_asm(
     /* decoded size */
     return dstSize;
 }
+#endif /* __x86_64__ */
 
 static size_t HUF_decompress4X2_usingDTable_internal(void* dst, size_t dstSize, void const* cSrc,
                     size_t cSrcSize, HUF_DTable const* DTable, int bmi2)
 {
+#ifdef __x86_64__
     if (kCheck && bmi2) {
         HUF_decompress4X2_usingDTable_internal_default(dst, dstSize, cSrc, cSrcSize, DTable);
         XXH64_hash_t const checksum0 = XXH64(dst, dstSize, 0);
@@ -1566,6 +1573,7 @@ static size_t HUF_decompress4X2_usingDTable_internal(void* dst, size_t dstSize, 
     if (bmi2) {
         return HUF_decompress4X2_usingDTable_internal_bmi2_asm(dst, dstSize, cSrc, cSrcSize, DTable);
     }
+#endif /* __x86_64__ */
     return HUF_decompress4X2_usingDTable_internal_default(dst, dstSize, cSrc, cSrcSize, DTable);
 }
 

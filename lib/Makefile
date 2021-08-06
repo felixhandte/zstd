@@ -188,28 +188,7 @@ vpath %.S $(ZSTD_SUBDIR)
 
 UNAME := $(shell uname)
 
-ifndef BUILD_DIR
-ifeq ($(UNAME), Darwin)
-  ifeq ($(shell md5 < /dev/null > /dev/null; echo $$?), 0)
-    HASH ?= md5
-  endif
-else ifeq ($(UNAME), FreeBSD)
-  HASH ?= gmd5sum
-else ifeq ($(UNAME), NetBSD)
-  HASH ?= md5 -n
-else ifeq ($(UNAME), OpenBSD)
-  HASH ?= md5
-endif
-HASH ?= md5sum
-
-HASH_DIR = conf_$(shell echo $(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(ZSTD_FILES) | $(HASH) | cut -f 1 -d " " )
-HAVE_HASH :=$(shell echo 1 | $(HASH) > /dev/null && echo 1 || echo 0)
-ifeq ($(HAVE_HASH),0)
-  $(info warning : could not find HASH ($(HASH)), needed to differentiate builds using different flags)
-  BUILD_DIR := obj/generic_noconf
-endif
-endif # BUILD_DIR
-
+include ../build/make/hash.mk
 
 # macOS linker doesn't support -soname, and use different extension
 # see : https://developer.apple.com/library/mac/documentation/DeveloperTools/Conceptual/DynamicLibraries/100-Articles/DynamicLibraryDesignGuidelines.html

@@ -282,6 +282,9 @@ $(ZSTD_DYNLIB): $(ZSTD_DYNLIB_OBJ)
 	ln -sf $@ libzstd.$(SHARED_EXT_MAJOR)
 	ln -sf $@ libzstd.$(SHARED_EXT)
 
+$(ZSTD_DYNLIB_DIR)/%.o: %.S
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
 $(LIBZSTD): $(ZSTD_DYNLIB)
 	cp -f $< $@
 

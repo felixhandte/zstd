@@ -36,14 +36,16 @@ extern "C" {
 /**
  * Asserts for fuzzing that are always enabled.
  */
-#define FUZZ_ASSERT_MSG(cond, msg)                                             \
+#define FUZZ_ASSERT_MSG(cond, ...)                                             \
   ((cond) ? (void)0                                                            \
-          : (fprintf(stderr, "%s: %u: Assertion: `%s' failed. %s\n", __FILE__, \
-                     __LINE__, FUZZ_QUOTE(cond), (msg)),                       \
+          : (fprintf(stderr, "%s: %u: Assertion: `%s' failed. ", __FILE__,     \
+                     __LINE__, FUZZ_QUOTE(cond)),                              \
+             fprintf(stderr, "" __VA_ARGS__),                                  \
+             fprintf(stderr, "\n"),                                            \
              abort()))
-#define FUZZ_ASSERT(cond) FUZZ_ASSERT_MSG((cond), "");
+#define FUZZ_ASSERT(cond) FUZZ_ASSERT_MSG((cond), "%s", "");
 #define FUZZ_ZASSERT(code)                                                     \
-  FUZZ_ASSERT_MSG(!ZSTD_isError(code), ZSTD_getErrorName(code))
+  FUZZ_ASSERT_MSG(!ZSTD_isError(code), "%s", ZSTD_getErrorName(code))
 
 #if defined(__GNUC__)
 #define FUZZ_STATIC static __inline __attribute__((unused))

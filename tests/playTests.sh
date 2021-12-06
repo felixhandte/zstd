@@ -974,6 +974,11 @@ println "- Dictionary compression with btlazy2 strategy"
 zstd -f tmp -D tmpDict --zstd=strategy=6
 zstd -d tmp.zst -D tmpDict -fo result
 $DIFF "$TESTFILE" result
+if [ -e /dev/stdin ]; then
+    println "- Test rejecting irregular dictionary file"
+    cat tmpDict | zstd -f tmp -D /dev/stdin 2>&1 | grep 'regular file' || die "Correct error message not detected!"
+    cat tmpDict | zstd -d tmp.zst -D /dev/stdin -f 2>&1 | grep 'regular file' || die "Correct error message not detected!"
+fi
 if [ -n "$hasMT" ]
 then
     println "- Test dictionary compression with multithreading "

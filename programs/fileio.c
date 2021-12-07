@@ -741,8 +741,10 @@ static size_t FIO_createDictBuffer(void** bufferPtr, const char* fileName, FIO_p
     DISPLAYLEVEL(4,"Loading %s as dictionary \n", fileName);
 
     if (!UTIL_stat(fileName, &statbuf)) {
-        EXM_THROW(31, "Stat failed on dictionary file %s.", fileName);
+        EXM_THROW(31, "Stat failed on dictionary file %s: %s", fileName, strerror(errno));
     }
+
+    DISPLAYLEVEL(1,"Loading %s as dictionary : mode %d size %llu\n", fileName, (int)statbuf.st_mode, (int)statbuf.st_size);
 
     if (!UTIL_isRegularFileStat(&statbuf)) {
         EXM_THROW(32, "Dictionary %s must be a regular file.", fileName);
@@ -762,13 +764,24 @@ static size_t FIO_createDictBuffer(void** bufferPtr, const char* fileName, FIO_p
                             fileName,  (unsigned)dictSizeMax);   /* avoid extreme cases */
         }
     }
-    *bufferPtr = malloc((size_t)fileSize);
+    *bufferPtr = malloc((size_t)fileSize + 1);
     if (*bufferPtr==NULL) EXM_THROW(34, "%s", strerror(errno));
-    {   size_t const readSize = fread(*bufferPtr, 1, (size_t)fileSize, fileHandle);
-        if (readSize != fileSize)
+    {   size_t const readSize = fread(*bufferPtr, 1, (size_t)fileSize + 1, fileHandle);
+        if (readSize != fileSize) {
             EXM_THROW(35, "Error reading dictionary file %s : %s",
                     fileName, strerror(errno));
+        }
+
+        ((char *)*bufferPtr)[readSize] = '\0';
+
+        DISPLAYLEVEL(1, "Loading %s as dictionary : read %u expected %u got %u eof %d: '%s'\n",
+            fileName, (uint32_t)fileSize + 1, (uint32_t)fileSize, (uint32_t)readSize, feof(fileHandle), (const char*)*bufferPtr);
     }
+
+    if (!feof(fileHandle)) {
+        EXM_THROW(35, "Failed to read the whole dictionary file %s : is it not a regular file?", fileName);
+    }
+
     fclose(fileHandle);
     return (size_t)fileSize;
 }

@@ -198,6 +198,8 @@ datagen : $(PRGDIR)/datagen.c datagencli.c
 roundTripCrash: CFLAGS += $(MULTITHREAD)
 roundTripCrash : $(ZSTD_OBJECTS) roundTripCrash.c
 
+lazy_adaptation_test : $(ZSTD_OBJECTS) lazy_adaptation_test.c
+
 longmatch : $(ZSTD_OBJECTS) longmatch.c
 
 bigdict: CFLAGS += $(MULTITHREAD)
@@ -240,7 +242,8 @@ clean:
         zstreamtest$(EXT) zstreamtest32$(EXT) \
         datagen$(EXT) paramgrill$(EXT) roundTripCrash$(EXT) longmatch$(EXT) \
         symbols$(EXT) invalidDictionaries$(EXT) legacy$(EXT) poolTests$(EXT) \
-        decodecorpus$(EXT) checkTag$(EXT) bigdict$(EXT)
+        decodecorpus$(EXT) checkTag$(EXT) bigdict$(EXT) \
+        lazy_adaptation_test$(EXT)
 	@echo Cleaning completed
 
 

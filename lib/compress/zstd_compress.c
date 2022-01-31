@@ -1830,6 +1830,32 @@ static int ZSTD_dictTooBig(size_t const loadedDictSize)
     return loadedDictSize > ZSTD_CHUNKSIZE_MAX;
 }
 
+static size_t ZSTD_resetCCtx_resizeWorkspace(ZSTD_CCtx* zc, size_t neededSpace) {
+    ZSTD_cwksp* const ws = &zc->workspace;
+
+    DEBUGLOG(4, "Resize workspaceSize from %zuKB to %zuKB",
+                ZSTD_cwksp_sizeof(ws) >> 10,
+                neededSpace >> 10);
+    RETURN_ERROR_IF(zc->staticSize, memory_allocation, "static cctx : no resize");
+
+    ZSTD_cwksp_free(ws, zc->customMem);
+    FORWARD_IF_ERROR(ZSTD_cwksp_create(ws, neededSpace, zc->customMem), "");
+
+    DEBUGLOG(5, "reserving object space");
+    /* Statically sized space.
+     * entropyWorkspace never moves,
+     * though prev/next block swap places */
+    assert(ZSTD_cwksp_check_available(ws, 2 * sizeof(ZSTD_compressedBlockState_t)));
+    zc->blockState.prevCBlock = (ZSTD_compressedBlockState_t*) ZSTD_cwksp_reserve_object(ws, sizeof(ZSTD_compressedBlockState_t));
+    RETURN_ERROR_IF(zc->blockState.prevCBlock == NULL, memory_allocation, "couldn't allocate prevCBlock");
+    zc->blockState.nextCBlock = (ZSTD_compressedBlockState_t*) ZSTD_cwksp_reserve_object(ws, sizeof(ZSTD_compressedBlockState_t));
+    RETURN_ERROR_IF(zc->blockState.nextCBlock == NULL, memory_allocation, "couldn't allocate nextCBlock");
+    zc->entropyWorkspace = (U32*) ZSTD_cwksp_reserve_object(ws, ENTROPY_WORKSPACE_SIZE);
+    RETURN_ERROR_IF(zc->entropyWorkspace == NULL, memory_allocation, "couldn't allocate entropyWorkspace");
+
+    return 0;
+}
+
 /*! ZSTD_resetCCtx_internal() :
  * @param loadedDictSize The size of the dictionary to be loaded
  * into the context, if any. If no dictionary is used, or the
@@ -1901,28 +1927,9 @@ static size_t ZSTD_resetCCtx_internal(ZSTD_CCtx* zc,
             DEBUGLOG(4, "windowSize: %zu - blockSize: %zu", windowSize, blockSize);
 
             if (resizeWorkspace) {
-                DEBUGLOG(4, "Resize workspaceSize from %zuKB to %zuKB",
-                            ZSTD_cwksp_sizeof(ws) >> 10,
-                            neededSpace >> 10);
-
-                RETURN_ERROR_IF(zc->staticSize, memory_allocation, "static cctx : no resize");
+                FORWARD_IF_ERROR(ZSTD_resetCCtx_resizeWorkspace(zc, neededSpace), "Couldn't resize workspace");
 
                 needsIndexReset = ZSTDirp_reset;
-
-                ZSTD_cwksp_free(ws, zc->customMem);
-                FORWARD_IF_ERROR(ZSTD_cwksp_create(ws, neededSpace, zc->customMem), "");
-
-                DEBUGLOG(5, "reserving object space");
-                /* Statically sized space.
-                 * entropyWorkspace never moves,
-                 * though prev/next block swap places */
-                assert(ZSTD_cwksp_check_available(ws, 2 * sizeof(ZSTD_compressedBlockState_t)));
-                zc->blockState.prevCBlock = (ZSTD_compressedBlockState_t*) ZSTD_cwksp_reserve_object(ws, sizeof(ZSTD_compressedBlockState_t));
-                RETURN_ERROR_IF(zc->blockState.prevCBlock == NULL, memory_allocation, "couldn't allocate prevCBlock");
-                zc->blockState.nextCBlock = (ZSTD_compressedBlockState_t*) ZSTD_cwksp_reserve_object(ws, sizeof(ZSTD_compressedBlockState_t));
-                RETURN_ERROR_IF(zc->blockState.nextCBlock == NULL, memory_allocation, "couldn't allocate nextCBlock");
-                zc->entropyWorkspace = (U32*) ZSTD_cwksp_reserve_object(ws, ENTROPY_WORKSPACE_SIZE);
-                RETURN_ERROR_IF(zc->entropyWorkspace == NULL, memory_allocation, "couldn't allocate entropyWorkspace");
         }   }
 
         ZSTD_cwksp_clear(ws);

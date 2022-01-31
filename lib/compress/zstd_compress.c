@@ -5371,6 +5371,9 @@ static size_t ZSTD_compressStream_generic(ZSTD_CStream* zcs,
         case zcss_init:
             RETURN_ERROR(init_missing, "call ZSTD_initCStream() first!");
 
+        case zcss_defer:
+            RETURN_ERROR(init_missing, "not implemented!");
+
         case zcss_load:
             if ( (flushMode == ZSTD_e_end)
               && ( (size_t)(oend-op) >= ZSTD_compressBound(iend-ip)     /* Enough output space */

@@ -46,7 +46,14 @@ extern "C" {
 *  Context memory management
 ***************************************/
 typedef enum { ZSTDcs_created=0, ZSTDcs_init, ZSTDcs_ongoing, ZSTDcs_ending } ZSTD_compressionStage_e;
-typedef enum { zcss_init=0, zcss_load, zcss_flush } ZSTD_cStreamStage;
+
+typedef enum {
+    zcss_init=0,
+    zcss_defer, /* we're delaying actually resetting the cctx even though we've
+                   started buffering input into it. */
+    zcss_load,
+    zcss_flush
+} ZSTD_cStreamStage;
 
 typedef struct ZSTD_prefixDict_s {
     const void* dict;

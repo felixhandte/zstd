@@ -569,6 +569,11 @@ ZSTD_bounds ZSTD_cParam_getBounds(ZSTD_cParameter param)
         bounds.upperBound = 1;
         return bounds;
 
+    case ZSTD_c_deferStreamingParamDeduction:
+        bounds.lowerBound = -1;
+        bounds.upperBound = 1;
+        return bounds;
+
     default:
         bounds.error = ERROR(parameter_unsupported);
         return bounds;
@@ -633,6 +638,7 @@ static int ZSTD_isUpdateAuthorized(ZSTD_cParameter param)
     case ZSTD_c_useBlockSplitter:
     case ZSTD_c_useRowMatchFinder:
     case ZSTD_c_deterministicRefPrefix:
+    case ZSTD_c_deferStreamingParamDeduction:
     default:
         return 0;
     }
@@ -688,6 +694,7 @@ size_t ZSTD_CCtx_setParameter(ZSTD_CCtx* cctx, ZSTD_cParameter param, int value)
     case ZSTD_c_useBlockSplitter:
     case ZSTD_c_useRowMatchFinder:
     case ZSTD_c_deterministicRefPrefix:
+    case ZSTD_c_deferStreamingParamDeduction:
         break;
 
     default: RETURN_ERROR(parameter_unsupported, "unknown parameter");
@@ -914,6 +921,11 @@ size_t ZSTD_CCtxParams_setParameter(ZSTD_CCtx_params* CCtxParams,
         CCtxParams->deterministicRefPrefix = !!value;
         return CCtxParams->deterministicRefPrefix;
 
+    case ZSTD_c_deferStreamingParamDeduction:
+        BOUNDCHECK(ZSTD_c_deferStreamingParamDeduction, value);
+        CCtxParams->deferStreamingParamDeduction = value;
+        return CCtxParams->deferStreamingParamDeduction;
+
     default: RETURN_ERROR(parameter_unsupported, "unknown parameter");
     }
 }
@@ -1045,6 +1057,9 @@ size_t ZSTD_CCtxParams_getParameter(
         break;
     case ZSTD_c_deterministicRefPrefix:
         *value = (int)CCtxParams->deterministicRefPrefix;
+        break;
+    case ZSTD_c_deferStreamingParamDeduction:
+        *value = (int)CCtxParams->deferStreamingParamDeduction;
         break;
     default: RETURN_ERROR(parameter_unsupported, "unknown parameter");
     }

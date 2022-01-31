@@ -335,6 +335,9 @@ struct ZSTD_CCtx_params_s {
     /* Always load a dictionary in ext-dict mode (not prefix mode)? */
     int deterministicRefPrefix;
 
+    /* Try to delay computing cParams on streamed compression */
+    int deferStreamingParamDeduction;
+
     /* Internal use, for createCCtxParams() and freeCCtxParams() only */
     ZSTD_customMem customMem;
 };  /* typedef'd to ZSTD_CCtx_params within "zstd.h" */

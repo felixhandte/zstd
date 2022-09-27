@@ -3996,6 +3996,9 @@ static size_t ZSTD_compress_frameChunk(ZSTD_CCtx* cctx,
     BYTE* op = ostart;
     U32 const maxDist = (U32)1 << cctx->appliedParams.cParams.windowLog;
 
+    BYTE* tmp = malloc(srcSize);
+    memcpy(tmp, ip, srcSize);
+
     assert(cctx->appliedParams.cParams.windowLog <= ZSTD_WINDOWLOG_MAX);
 
     DEBUGLOG(4, "ZSTD_compress_frameChunk (blockSize=%u)", (unsigned)blockSize);

@@ -154,11 +154,15 @@ size_t ZSTD_compressBlock_doubleFast_noDict_generic(
     /* Outer Loop: one iteration per match found and stored */
     while (1) {
         step = 1;
-        nextStep = ip + kStepIncr;
         ip1 = ip + step;
 
-        if (ip1 > ilimit) {
-            goto _cleanup;
+        /* nextStep is the lesser of the next acceleration step or ilimit */
+        nextStep = ip + kStepIncr;
+        if (nextStep > ilimit) {
+            if (ip >= ilimit) {
+                goto _cleanup;
+            }
+            nextStep = ilimit;
         }
 
         hl0 = ZSTD_hashPtr(ip, hBitsL, 8);
@@ -166,7 +170,7 @@ size_t ZSTD_compressBlock_doubleFast_noDict_generic(
         matchl0 = base + idxl0;
 
         /* Inner Loop: one iteration per search / position */
-        do {
+        while (1) {
             const size_t hs0 = ZSTD_hashPtr(ip, hBitsS, mls);
             const U32 idxs0 = hashSmall[hs0];
             curr = (U32)(ip-base);
@@ -205,10 +209,16 @@ size_t ZSTD_compressBlock_doubleFast_noDict_generic(
             }
 
             if (ip1 >= nextStep) {
+                if (nextStep == ilimit) {
+                    goto _cleanup;
+                }
                 PREFETCH_L1(ip1 + 64);
                 PREFETCH_L1(ip1 + 128);
                 step++;
                 nextStep += kStepIncr;
+                if (nextStep > ilimit) {
+                    nextStep = ilimit;
+                }
             }
             ip = ip1;
             ip1 += step;
@@ -219,7 +229,7 @@ size_t ZSTD_compressBlock_doubleFast_noDict_generic(
     #if defined(__aarch64__)
             PREFETCH_L1(ip+256);
     #endif
-        } while (ip1 <= ilimit);
+        };
 
 _cleanup:
         /* If offset_1 started invalid (offsetSaved1 != 0) and became valid (offset_1 != 0),
